@@ -1,11 +1,11 @@
 :root {
   color-scheme: light;
-  --bg: #0b1220;
-  --panel: #0f172a;
-  --panel2: #111b33;
-  --text: #e5e7eb;
-  --muted: #94a3b8;
-  --border: #23304a;
+  --bg: #ffffff;
+  --panel: #f8f9fa;
+  --panel2: #f3f4f6;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --border: #e5e7eb;
   --accent: #2563eb;
 }
 
@@ -27,7 +27,7 @@ body {
     'Noto Sans',
     'Apple Color Emoji',
     'Segoe UI Emoji';
-  background: radial-gradient(1200px 700px at 20% 0%, #1a2b55 0%, #0b1220 55%, #070b14 100%);
+  background: #ffffff;
   color: var(--text);
 }
 
@@ -43,7 +43,7 @@ a {
 
 .sidebar {
   border-right: 1px solid var(--border);
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(9, 13, 25, 0.95));
+  background: linear-gradient(180deg, rgba(248, 249, 250, 0.95), rgba(243, 244, 246, 0.95));
   padding: 18px 14px;
 }
 
@@ -74,19 +74,19 @@ a {
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid transparent;
-  color: #cbd5e1;
+  color: #4b5563;
   background: transparent;
 }
 
 .navitem:hover {
-  border-color: rgba(148, 163, 184, 0.2);
-  background: rgba(148, 163, 184, 0.08);
+  border-color: rgba(37, 99, 235, 0.2);
+  background: rgba(37, 99, 235, 0.08);
 }
 
 .navitem--active {
-  color: white;
-  background: rgba(37, 99, 235, 0.22);
-  border-color: rgba(37, 99, 235, 0.45);
+  color: #1f2937;
+  background: rgba(37, 99, 235, 0.15);
+  border-color: rgba(37, 99, 235, 0.5);
 }
 
 .content {
@@ -118,9 +118,9 @@ h1 {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: rgba(11, 18, 32, 0.75);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(35, 48, 74, 0.7);
+  border: 1px solid rgba(229, 231, 235, 0.7);
   border-radius: 14px;
   padding: 10px 12px;
   display: flex;
@@ -143,8 +143,8 @@ h1 {
 }
 
 .card {
-  background: rgba(15, 23, 42, 0.78);
-  border: 1px solid rgba(35, 48, 74, 0.75);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(229, 231, 235, 0.75);
   border-radius: 14px;
   padding: 14px;
 }
@@ -173,8 +173,8 @@ h1 {
 input,
 select,
 textarea {
-  background: rgba(2, 6, 23, 0.7);
-  border: 1px solid rgba(35, 48, 74, 0.9);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(209, 213, 219, 0.9);
   border-radius: 10px;
   padding: 10px 10px;
   color: var(--text);
@@ -194,7 +194,7 @@ textarea:focus {
 
 .btn {
   border: 1px solid rgba(37, 99, 235, 0.7);
-  background: rgba(37, 99, 235, 0.25);
+  background: rgba(37, 99, 235, 0.9);
   color: white;
   padding: 10px 12px;
   border-radius: 12px;
@@ -203,18 +203,19 @@ textarea:focus {
 }
 
 .btn:hover {
-  background: rgba(37, 99, 235, 0.35);
+  background: rgba(37, 99, 235, 0.8);
 }
 
 .btn--sub {
-  border-color: rgba(148, 163, 184, 0.35);
-  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(209, 213, 219, 0.5);
+  background: rgba(243, 244, 246, 0.8);
+  color: var(--text);
 }
 
 .link {
   border: 0;
   background: transparent;
-  color: #93c5fd;
+  color: #2563eb;
   cursor: pointer;
   padding: 0;
   font: inherit;
@@ -224,8 +225,9 @@ textarea:focus {
   text-decoration: none;
   padding: 6px 10px;
   border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  background: rgba(148, 163, 184, 0.08);
+  border: 1px solid rgba(209, 213, 219, 0.5);
+  background: rgba(243, 244, 246, 0.8);
+  color: var(--text);
 }
 
 .tablewrap {
@@ -243,7 +245,7 @@ textarea:focus {
 .table td {
   text-align: left;
   padding: 10px 10px;
-  border-bottom: 1px solid rgba(35, 48, 74, 0.7);
+  border-bottom: 1px solid rgba(229, 231, 235, 0.7);
 }
 
 .table th {
@@ -258,8 +260,9 @@ textarea:focus {
   padding: 4px 8px;
   font-size: 12px;
   border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  color: #cbd5e1;
+  border: 1px solid rgba(209, 213, 219, 0.5);
+  color: #4b5563;
+  background: rgba(243, 244, 246, 0.8);
 }
 
 .tag--ok {
@@ -270,7 +273,7 @@ textarea:focus {
 
 .seg {
   display: inline-flex;
-  border: 1px solid rgba(35, 48, 74, 0.75);
+  border: 1px solid rgba(209, 213, 219, 0.75);
   border-radius: 12px;
   overflow: hidden;
 }
@@ -278,20 +281,20 @@ textarea:focus {
 .seg__btn {
   border: 0;
   background: transparent;
-  color: #cbd5e1;
+  color: #4b5563;
   padding: 10px 10px;
   cursor: pointer;
   font-weight: 700;
 }
 
 .seg__btn--on {
-  background: rgba(148, 163, 184, 0.12);
-  color: white;
+  background: rgba(243, 244, 246, 0.8);
+  color: #1f2937;
 }
 
 .divider {
   height: 1px;
-  background: rgba(35, 48, 74, 0.75);
+  background: rgba(229, 231, 235, 0.75);
   margin: 14px 0;
 }
 
@@ -301,10 +304,10 @@ textarea:focus {
 }
 
 .hint {
-  border: 1px solid rgba(148, 163, 184, 0.22);
+  border: 1px solid rgba(209, 213, 219, 0.4);
   border-radius: 12px;
   padding: 10px 12px;
-  background: rgba(2, 6, 23, 0.35);
+  background: rgba(243, 244, 246, 0.6);
 }
 
 .hint__title {

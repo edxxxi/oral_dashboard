@@ -8,14 +8,17 @@ import type { RiskLevel } from '../store/types'
 import { computeRiskLevel, riskLabel } from '../utils/risk'
 import { formatDateTime } from '../utils/date'
 
+type SortMode = 'bed' | 'risk'
+
 export default function DashboardPage() {
   const { state, dispatch } = useStore()
   const [q, setQ] = useState('')
   const [riskFilter, setRiskFilter] = useState<RiskLevel | 'all'>('all')
+  const [sortMode, setSortMode] = useState<SortMode>('bed')
 
   const rows = useMemo(() => {
     const query = q.trim().toLowerCase()
-    return state.residents
+    const data = state.residents
       .map((r) => {
         const latest = [...state.assessments]
           .filter((a) => a.residentId === r.id)
@@ -31,8 +34,18 @@ export default function DashboardPage() {
           resident.name.toLowerCase().includes(query)
         )
       })
-      .sort((a, b) => (a.resident.bedNo > b.resident.bedNo ? 1 : -1))
-  }, [q, riskFilter, state.assessments, state.residents])
+
+    if (sortMode === 'risk') {
+      const riskOrder = { high: 0, medium: 1, low: 2 }
+      return data.sort((a, b) => {
+        const riskDiff = riskOrder[a.risk] - riskOrder[b.risk]
+        if (riskDiff !== 0) return riskDiff
+        return a.resident.bedNo > b.resident.bedNo ? 1 : -1
+      })
+    }
+
+    return data.sort((a, b) => (a.resident.bedNo > b.resident.bedNo ? 1 : -1))
+  }, [q, riskFilter, sortMode, state.assessments, state.residents])
 
   const summary = useMemo(() => {
     const counts: Record<RiskLevel, number> = { low: 0, medium: 0, high: 0 }
@@ -60,7 +73,7 @@ export default function DashboardPage() {
 
       <div className="grid" style={{ gridTemplateColumns: '1.1fr 0.9fr' }}>
         <section className="card">
-          <div className="card__title">搜尋 / 篩選</div>
+          <div className="card__title">搜尋 / 篩選 / 排序</div>
           <div className="row" style={{ gap: 12, flexWrap: 'wrap' }}>
             <label className="field" style={{ minWidth: 260 }}>
               <span className="label">床號 / 姓名</span>
@@ -73,6 +86,13 @@ export default function DashboardPage() {
                 <option value="low">綠燈（低風險）</option>
                 <option value="medium">黃燈（中風險）</option>
                 <option value="high">紅燈（高風險）</option>
+              </select>
+            </label>
+            <label className="field" style={{ minWidth: 220 }}>
+              <span className="label">排序</span>
+              <select value={sortMode} onChange={(e) => setSortMode(e.target.value as SortMode)}>
+                <option value="bed">按床號排序</option>
+                <option value="risk">按紅黃綠燈排序</option>
               </select>
             </label>
           </div>
