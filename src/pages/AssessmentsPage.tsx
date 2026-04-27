@@ -69,7 +69,7 @@ export default function AssessmentsPage() {
         </div>
       </div>
 
-      <section className="card">
+      <section className="card" key={resident.id}>
         <div className="card__title">本次評估輸入</div>
         {tab === 'spmsq' ? (
           <SPMSQForm defaultErrors={latest?.spmsqErrors} onSubmit={(d) => savePatch(d)} />

@@ -155,13 +155,13 @@ export default function DashboardPage() {
                   </td>
                   <td>{latest ? formatDateTime(latest.createdAt) : '—'}</td>
                   <td className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
-                    <Link className="pill" to="/residents">
+                    <Link className="pill" to="/residents" onClick={() => dispatch({ type: 'select_resident', id: resident.id })}>
                       分頁 B
                     </Link>
-                    <Link className="pill" to="/assessments">
+                    <Link className="pill" to="/assessments" onClick={() => dispatch({ type: 'select_resident', id: resident.id })}>
                       分頁 C
                     </Link>
-                    <Link className="pill" to="/reports">
+                    <Link className="pill" to="/reports" onClick={() => dispatch({ type: 'select_resident', id: resident.id })}>
                       分頁 D
                     </Link>
                   </td>
