@@ -20,8 +20,15 @@ export default function ResidentsBasicsPage() {
   const resident = useSelectedResident()
   const { dispatch } = useStore()
 
+  const [prevResidentId, setPrevResidentId] = useState<string | undefined>(undefined)
   const [medicalSummary, setMedicalSummary] = useState(resident?.medicalSummary ?? '')
   const [oralCheckNotes, setOralCheckNotes] = useState(resident?.oralCheckNotes ?? '')
+
+  if (resident?.id !== prevResidentId) {
+    setPrevResidentId(resident?.id)
+    setMedicalSummary(resident?.medicalSummary ?? '')
+    setOralCheckNotes(resident?.oralCheckNotes ?? '')
+  }
 
   if (!resident) {
     return (

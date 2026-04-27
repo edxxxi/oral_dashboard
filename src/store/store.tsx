@@ -74,6 +74,17 @@ function reducer(state: AppState, action: Action): AppState {
       const createdAt = todayISO()
       const d = new Date(createdAt)
       const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      const existing = state.assessments.find(
+        (a) => a.residentId === action.residentId && a.monthKey === monthKey,
+      )
+      if (existing) {
+        return {
+          ...state,
+          assessments: state.assessments.map((a) =>
+            a.id === existing.id ? { ...a, ...action.patch, createdAt } : a,
+          ),
+        }
+      }
       const rec: AssessmentRecord = {
         id: makeId('asm'),
         residentId: action.residentId,

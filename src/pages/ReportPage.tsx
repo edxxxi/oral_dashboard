@@ -29,7 +29,13 @@ export default function ReportPage() {
       }))
   }, [assessments])
 
+  const [prevResidentId, setPrevResidentId] = useState<string | undefined>(undefined)
   const [doctorNote, setDoctorNote] = useState('')
+
+  if (resident?.id !== prevResidentId) {
+    setPrevResidentId(resident?.id)
+    setDoctorNote('')
+  }
 
   if (!resident) {
     return (
