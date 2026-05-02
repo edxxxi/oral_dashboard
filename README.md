@@ -51,12 +51,3 @@ npm run dev
 
 用瀏覽器開啟該網址即可。
 
-+
-+---
-+
-+## 🚀 部署至 Vercel
-+本專案已包含 `vercel.json` 路由配置，可完美部署為單頁應用程式 (SPA)：
-+1. 將本專案推送到 GitHub。
-+2. 在 Vercel 點擊 "Add New Project" 並匯入該 Repository。
-+3. 若有連線真實資料庫，請於 Environment Variables 填入 `VITE_SUPABASE_URL` 與 `VITE_SUPABASE_ANON_KEY`。
-+4. 點擊 Deploy，一分鐘內即可上線！
