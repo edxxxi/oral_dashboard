@@ -1,11 +1,11 @@
 # 高齡吞嚥風險防範｜口腔功能統合儀表板（前端原型）
 
-此專案為 **Vite + React + TypeScript** 製作的「可直接操作/瀏覽」前端原型，用於呈現：住民紅黃綠燈風險儀表板、分頁 A~D 的基本資料與量表輸入、以及趨勢圖。
+此專案為基於 **Vite + React + TypeScript** 打造的「可直接操作/瀏覽」臨床前端原型系統。主要用於高齡者的口腔與吞嚥功能、營養狀況及日常護理評估的綜合管理，並視覺化呈現：住民紅黃綠燈風險儀表板、跨專業量表評估、以及 AI 綜合分析報告。
 
-- 不含後端 / controller
-- 不含硬體串接
-- 不含語音辨識
-- 以 **假資料 + localStorage** 示意資料呈現與操作流程
+- 支援 **Supabase 雲端資料庫** 即時同步
+- 內建 **Mock Data 防呆機制**，無資料庫也可透過 localStorage 完美運行
+- 採用 **響應式與觸控友善 (Touch-friendly) 介面**，適合臨床平板操作
+- 已設定 SPA 路由，支援一鍵快速部署至 **Vercel**
 
 GitHub Repo：<https://github.com/JosephKuo0402/oral-dashboard-frontend>
 
@@ -31,18 +31,17 @@ GitHub Repo：<https://github.com/JosephKuo0402/oral-dashboard-frontend>
    - 口語治療師、營養師建議事項
 
 ### 分頁 C｜評估量表
-- SPMSQ（護理師）
-- MNA（營養師）
-- 吞嚥能力篩檢（照服員）
-- 30 秒吞嚥測驗
-
-
+提供四大跨專業臨床評估工具（具備自動計分與風險判定功能）：
+1. **EAT-10 吞嚥能力篩檢**（照服員/語言治療師）
+2. **MNA-SF 簡易營養篩檢表**（營養師）
+3. **咀嚼能力篩檢**
+4. **護理評估量表**（包含 SPMSQ 簡易精神狀態、ADL 基本日常生活活動、IADL 工具性日常生活）
 
 ### 分頁 D｜綜合分析報告
-- 風險紅黃綠燈判定（示意）
-- 餐食建議（普通/軟/流質）
-- 每月評估趨勢圖（體重 + 風險等級）
-- 醫師建議/轉介（示意保存）
+- **AI 綜合風險判定**（紅黃綠燈視覺化）
+- **系統餐食建議**與詳細備餐指導（普通/軟質/流質飲食）
+- **護理評估指標看板**（直接呈現最新 SPMSQ / ADL 總分 / IADL 失能判定）
+- **歷史趨勢變化圖**（以動態折線圖追蹤數月內的體重與風險等級變化）
 
 ---
 
@@ -50,7 +49,6 @@ GitHub Repo：<https://github.com/JosephKuo0402/oral-dashboard-frontend>
 
 ### 1) 安裝套件（第一次才需要）
 ```bash
-cd "/mnt/c/Users/Administrator/口腔訓練/oral-dashboard-frontend"
 npm install
 ```
 
@@ -65,6 +63,12 @@ npm run dev
 
 用瀏覽器開啟該網址即可。
 
-
-
-
++
++---
++
++## 🚀 部署至 Vercel
++本專案已包含 `vercel.json` 路由配置，可完美部署為單頁應用程式 (SPA)：
++1. 將本專案推送到 GitHub。
++2. 在 Vercel 點擊 "Add New Project" 並匯入該 Repository。
++3. 若有連線真實資料庫，請於 Environment Variables 填入 `VITE_SUPABASE_URL` 與 `VITE_SUPABASE_ANON_KEY`。
++4. 點擊 Deploy，一分鐘內即可上線！
