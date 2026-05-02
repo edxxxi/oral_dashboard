@@ -5,7 +5,7 @@ import { useAuth } from '../auth'
 
 export default function ResidentsBasicsPage() {
   const resident = useSelectedResident()
-  const { dispatch, state } = useStore()
+  const { dispatch, state, addResident } = useStore()
   const { user } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -230,23 +230,16 @@ export default function ResidentsBasicsPage() {
               <button
                 className="btn"
                 style={{ fontSize: '18px', padding: '12px 24px', marginTop: '16px', alignSelf: 'flex-start' }}
-                onClick={() => {
+                onClick={async () => {
                   if (!newName.trim()) return alert('請輸入病人姓名');
                   
-                  let age = 65; // 簡易年齡預設值計算
+                  let age = 65;
                   if (newDob) {
                     age = new Date().getFullYear() - new Date(newDob).getFullYear();
                   }
 
-                  const newResId = `res-${Date.now()}`;
-                  dispatch({
-                    type: 'add_resident_local',
-                    resident: {
-                      id: newResId, bedNo: `New-${Math.floor(Math.random() * 100)}`, name: newName.trim(),
-                      age, attachments: [], dietStatus: { feedingMethod: 'oral', dietType: 'full', slpNotes: '', dietitianNotes: '' }
-                    } as any
-                  });
-                  dispatch({ type: 'select_resident', id: newResId });
+                  const bedNo = `New-${Math.floor(Math.random() * 100)}`;
+                  await addResident({ name: newName.trim(), bedNo, age, dob: newDob || undefined });
                   
                   alert(`成功新增病人：${newName.trim()}！已為您自動切換。`);
                   setNewName(''); setNewDob('');
