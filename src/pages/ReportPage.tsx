@@ -38,6 +38,7 @@ export default function ReportPage() {
         month: monthKey,
         weight: typeof a.weightKg === 'number' ? a.weightKg : null,
         risk: computeRiskLevel(a) === 'high' ? 3 : computeRiskLevel(a) === 'medium' ? 2 : 1,
+        adl: (a as any)?.nursingData?.adl?.total ?? null,
       }))
   }, [assessments])
 
@@ -249,6 +250,7 @@ export default function ReportPage() {
                     <Legend verticalAlign="top" height={36} />
                     {/* 加入顯眼的資料點 dot */}
                     <Line yAxisId="left" type="monotone" dataKey="weight" name="體重 (kg)" stroke="#3b82f6" strokeWidth={3} dot={{ r: 6, fill: '#ffffff', strokeWidth: 2 }} activeDot={{ r: 8, fill: '#3b82f6' }} />
+                    <Line yAxisId="left" type="monotone" dataKey="adl" name="ADL 總分" stroke="#10b981" strokeWidth={3} dot={{ r: 6, fill: '#ffffff', strokeWidth: 2 }} activeDot={{ r: 8, fill: '#10b981' }} />
                     <Line yAxisId="right" type="linear" dataKey="risk" name="AI 風險 (低/中/高)" stroke="#ef4444" strokeWidth={3} dot={{ r: 6, fill: '#ffffff', strokeWidth: 2 }} activeDot={{ r: 8, fill: '#ef4444' }} />
                   </LineChart>
                 </ResponsiveContainer>

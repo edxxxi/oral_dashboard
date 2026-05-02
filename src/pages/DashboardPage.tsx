@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth'
 import { useStore } from '../store/store'
+import { computeRiskLevel, riskLabel } from '../utils/risk'
+import { RiskLight } from '../components/RiskLight'
 
 export default function DashboardPage() {
   const { user } = useAuth()
@@ -104,8 +106,8 @@ export default function DashboardPage() {
       {/* 中間主要區塊 */}
       <div style={{
         flex: 1, display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
-        marginTop: '-10vh'
+        alignItems: 'center', justifyContent: 'flex-start',
+        paddingTop: '8vh', paddingBottom: '64px'
         }}>
         
         {/* 標題 */}

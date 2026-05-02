@@ -109,11 +109,14 @@ export default function NursingAssessments({ onSave }: AssessmentProps) {
     return { total, failCountTop5, isMildDisabled };
   }, [iadlScores, iadlNotApp]);
 
+  const [notes, setNotes] = useState('');
+
   const handleSave = () => {
     onSave({
       spmsq: { errors: spmsqErrors.length, education, result: spmsqResult.label },
       adl: { scores: adlScores, total: adlTotal },
-      iadl: { scores: iadlScores, notApplicable: iadlNotApp, total: iadlAnalysis.total, isMildDisabled: iadlAnalysis.isMildDisabled }
+      iadl: { scores: iadlScores, notApplicable: iadlNotApp, total: iadlAnalysis.total, isMildDisabled: iadlAnalysis.isMildDisabled },
+      notes
     });
   };
 
@@ -257,6 +260,18 @@ export default function NursingAssessments({ onSave }: AssessmentProps) {
             )}
           </div>
         </div>
+      </div>
+
+      {/* 備註區塊 */}
+      <div className="bg-white p-8 rounded-2xl shadow-sm border-2 border-gray-100">
+        <h2 className="text-3xl font-bold text-gray-800 mb-6 border-b-2 pb-4 border-indigo-100">護理師備註</h2>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          className="w-full border-2 border-gray-300 rounded-xl p-4 text-2xl focus:ring-indigo-500 focus:border-indigo-500"
+          rows={4}
+          placeholder="請輸入本次評估的相關備註事項..."
+        />
       </div>
 
       <div className="flex justify-end pt-8 border-t-2 border-gray-300">

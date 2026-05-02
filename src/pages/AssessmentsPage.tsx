@@ -242,7 +242,7 @@ export default function AssessmentsPage() {
               ) : tab === 'chewing' ? (
                 <ChewingForm defaultScore={(latest as any)?.chewingScore} onSubmit={(d) => savePatch(d)} />
               ) : (
-                <NursingAssessments onSave={(d) => savePatch({ nursingData: d } as any)} />
+                <NursingAssessments onSave={(d) => savePatch({ nursingData: d, notes: d.notes } as any)} />
               )}
             </section>
 
