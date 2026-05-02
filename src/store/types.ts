@@ -7,6 +7,7 @@ export type Resident = {
   bedNo: string
   name: string
   age: number
+  dob?: string   // ISO 日期字串，如 "1945-03-15"
   gender?: 'M' | 'F' | 'O'
   photoUrl?: string
   medicalSummary: string

@@ -109,7 +109,7 @@ type Store = {
   dispatch: React.Dispatch<Action>
   loading: boolean
   // 新增：直接操作資料庫的異步方法
-  addResident: (fields: { name: string; bedNo: string; age: number }) => Promise<void>
+  addResident: (fields: { name: string; bedNo: string; age: number; dob?: string }) => Promise<void>
   updateResident: (id: string, patch: Partial<Resident>) => Promise<void>
   addAssessment: (residentId: string, patch: Partial<AssessmentRecord>) => Promise<void>
 }
@@ -189,12 +189,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   // 2. 新增住民並同步到雲端
-  const addResident = async (fields: { name: string; bedNo: string; age: number }) => {
+  const addResident = async (fields: { name: string; bedNo: string; age: number; dob?: string }) => {
     const defaultDietStatus = { feedingMethod: 'oral', dietType: 'full', slpNotes: '', dietitianNotes: '' }
     const dbRecord = {
       name: fields.name,
       bed_no: fields.bedNo,
       age: fields.age,
+      dob: fields.dob ?? null,
       medical_summary: '',
       oral_check_notes: '',
       diet_status: defaultDietStatus,
@@ -212,6 +213,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         name: fields.name,
         bedNo: fields.bedNo,
         age: fields.age,
+        dob: fields.dob,
         medicalSummary: '',
         oralCheckNotes: '',
         attachments: [],
@@ -226,6 +228,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         name: row.name,
         bedNo: row.bed_no,
         age: row.age,
+        dob: row.dob ?? undefined,
         medicalSummary: row.medical_summary ?? '',
         oralCheckNotes: row.oral_check_notes ?? '',
         attachments: row.attachments ?? [],
