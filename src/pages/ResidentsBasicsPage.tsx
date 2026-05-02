@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useSelectedResident, useStore } from '../store/store'
 import { useAuth } from '../auth'
+import { formatDob } from '../utils/date'
 
 export default function ResidentsBasicsPage() {
   const resident = useSelectedResident()
@@ -287,13 +288,7 @@ export default function ResidentsBasicsPage() {
                       <div>
                         <strong style={{ color: '#111827', display: 'inline-block', width: '120px' }}>出生年月日：</strong>
                         {resident.dob
-                          ? (() => {
-                              const d = new Date(resident.dob)
-                              const y = d.getFullYear()
-                              const m = String(d.getMonth() + 1).padStart(2, '0')
-                              const day = String(d.getDate()).padStart(2, '0')
-                              return `${y}/${m}/${day}（${resident.age} 歲）`
-                            })()
+                          ? `${formatDob(resident.dob)}（${resident.age} 歲）`
                           : `（${resident.age} 歲）`
                         }
                       </div>
