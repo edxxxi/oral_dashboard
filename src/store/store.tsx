@@ -109,6 +109,7 @@ type Store = {
   dispatch: React.Dispatch<Action>
   loading: boolean
   // 新增：直接操作資料庫的異步方法
+  addResident: (fields: { name: string; bedNo: string; age: number }) => Promise<void>
   updateResident: (id: string, patch: Partial<Resident>) => Promise<void>
   addAssessment: (residentId: string, patch: Partial<AssessmentRecord>) => Promise<void>
 }
@@ -187,7 +188,55 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     loadData()
   }, [])
 
-  // 2. 異步更新住民資料並同步到雲端
+  // 2. 新增住民並同步到雲端
+  const addResident = async (fields: { name: string; bedNo: string; age: number }) => {
+    const defaultDietStatus = { feedingMethod: 'oral', dietType: 'full', slpNotes: '', dietitianNotes: '' }
+    const dbRecord = {
+      name: fields.name,
+      bed_no: fields.bedNo,
+      age: fields.age,
+      medical_summary: '',
+      oral_check_notes: '',
+      diet_status: defaultDietStatus,
+      attachments: [],
+    }
+
+    const { data, error } = await (supabase.from('residents') as any)
+      .insert([dbRecord])
+      .select()
+
+    if (error) {
+      console.warn('雲端儲存失敗，轉為本地儲存: ' + error.message)
+      const resident: Resident = {
+        id: `local-res-${Date.now()}`,
+        name: fields.name,
+        bedNo: fields.bedNo,
+        age: fields.age,
+        medicalSummary: '',
+        oralCheckNotes: '',
+        attachments: [],
+        dietStatus: defaultDietStatus as Resident['dietStatus'],
+      }
+      dispatch({ type: 'add_resident_local', resident })
+      dispatch({ type: 'select_resident', id: resident.id })
+    } else if (data && data[0]) {
+      const row = data[0]
+      const resident: Resident = {
+        id: row.id,
+        name: row.name,
+        bedNo: row.bed_no,
+        age: row.age,
+        medicalSummary: row.medical_summary ?? '',
+        oralCheckNotes: row.oral_check_notes ?? '',
+        attachments: row.attachments ?? [],
+        dietStatus: row.diet_status ?? defaultDietStatus,
+      }
+      dispatch({ type: 'add_resident_local', resident })
+      dispatch({ type: 'select_resident', id: resident.id })
+    }
+  }
+
+  // 3. 異步更新住民資料並同步到雲端
   const updateResident = async (id: string, patch: Partial<Resident>) => {
     // 準備要傳給資料庫的格式（轉回下底線）
     const dbPatch: any = { ...patch };
@@ -209,7 +258,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // 3. 新增評估紀錄並同步到雲端
+  // 4. 新增評估紀錄並同步到雲端
   const addAssessment = async (residentId: string, patch: Partial<AssessmentRecord>) => {
     const createdAt = todayISO()
     const d = new Date(createdAt)
@@ -261,6 +310,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     state, 
     dispatch, 
     loading, 
+    addResident,
     updateResident, 
     addAssessment 
   }), [state, loading])
