@@ -1,180 +1,197 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { ResidentAvatar } from '../components/ResidentAvatar'
-import { RiskLight } from '../components/RiskLight'
+import { useAuth } from '../auth'
 import { useStore } from '../store/store'
-import type { RiskLevel } from '../store/types'
-import { computeRiskLevel, riskLabel } from '../utils/risk'
-import { formatDateTime } from '../utils/date'
-
-type SortMode = 'bed' | 'risk'
 
 export default function DashboardPage() {
+  const { user } = useAuth()
   const { state, dispatch } = useStore()
   const navigate = useNavigate()
   const [q, setQ] = useState('')
-  const [riskFilter, setRiskFilter] = useState<RiskLevel | 'all'>('all')
-  const [sortMode, setSortMode] = useState<SortMode>('bed')
+  const [showUserMenu, setShowUserMenu] = useState(false)
 
-  const rows = useMemo(() => {
-    const query = q.trim().toLowerCase()
-    const data = state.residents
-      .map((r) => {
-        const latest = [...state.assessments]
-          .filter((a) => a.residentId === r.id)
-          .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0]
-        const risk = computeRiskLevel(latest)
-        return { resident: r, latest, risk }
-      })
-      .filter(({ resident, risk }) => {
-        if (riskFilter !== 'all' && risk !== riskFilter) return false
-        if (!query) return true
-        return (
-          resident.bedNo.toLowerCase().includes(query) ||
-          resident.name.toLowerCase().includes(query)
-        )
-      })
+  const handleLogout = () => {
+    // 清除前端 prototype 暫存的登入狀態並重整/導向登入頁
+    localStorage.clear()
+    window.location.href = '/login'
+  }
 
-    if (sortMode === 'risk') {
-      const riskOrder = { high: 0, medium: 1, low: 2 }
-      return data.sort((a, b) => {
-        const riskDiff = riskOrder[a.risk] - riskOrder[b.risk]
-        if (riskDiff !== 0) return riskDiff
-        return a.resident.bedNo > b.resident.bedNo ? 1 : -1
-      })
-    }
+  // 原有的 5 個分頁功能
+  const shortcuts = [
+    { name: '系統管理', path: '/system', icon: '⚙️' },
+    { name: '住民資料', path: '/residents', icon: '📁' },
+    { name: '評估量表', path: '/assessments', icon: '📋' },
+    { name: '分析報告', path: '/reports', icon: '📊' },
+  ]
 
-    return data.sort((a, b) => (a.resident.bedNo > b.resident.bedNo ? 1 : -1))
-  }, [q, riskFilter, sortMode, state.assessments, state.residents])
-
-  const summary = useMemo(() => {
-    const counts: Record<RiskLevel, number> = { low: 0, medium: 0, high: 0 }
-    for (const r of rows) counts[r.risk] += 1
-    return counts
-  }, [rows])
-
-  const chartData = useMemo(
-    () => [
-      { name: '綠', value: summary.low },
-      { name: '黃', value: summary.medium },
-      { name: '紅', value: summary.high },
-    ],
-    [summary],
+  // 根據搜尋框輸入的字串，篩選出符合的住民（床號或姓名任一符合即可）
+  const searchResults = q.trim() === '' ? [] : state.residents.filter((r) =>
+    r.bedNo.toLowerCase().includes(q.toLowerCase()) ||
+    r.name.toLowerCase().includes(q.toLowerCase())
   )
 
+  const handleSearchEnter = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && searchResults.length > 0) {
+      dispatch({ type: 'select_resident', id: searchResults[0].id })
+      navigate('/residents')
+    }
+  }
+
   return (
-    <div className="page">
-      <div className="page__header">
-        <div>
-          <h1>首頁 Dashboard｜全景監控</h1>
-          <p className="muted">所有住民紅黃綠燈狀態一覽（含搜尋/篩選）</p>
-        </div>
+    <div style={{
+      position: 'fixed',
+      top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: '#ffffff',
+      zIndex: 9999,
+      display: 'flex',
+      flexDirection: 'column',
+      fontFamily: 'sans-serif'
+    }}>
+      {/* 右上角：使用者資訊與登出選單 */}
+      <div style={{ position: 'absolute', top: 16, right: 24 }}>
+        <button
+          onClick={() => setShowUserMenu(!showUserMenu)}
+          style={{
+            width: 40, height: 40, borderRadius: '50%',
+            backgroundColor: '#2563eb', color: '#fff',
+            border: 'none', cursor: 'pointer', fontSize: 18, fontWeight: 'bold',
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}
+          title="使用者選單"
+        >
+          {user?.name?.[0] || 'U'}
+        </button>
+
+        {showUserMenu && (
+          <div style={{
+            position: 'absolute', top: 50, right: 0,
+            backgroundColor: '#fff',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            borderRadius: 8, padding: '8px 0',
+            width: 160, textAlign: 'center'
+          }}>
+            <div style={{ padding: '8px 16px', borderBottom: '1px solid #eee', color: '#666', fontSize: 14 }}>
+              {user?.name || '使用者'}
+            </div>
+            <button
+              onClick={handleLogout}
+              style={{
+                display: 'block', width: '100%', padding: '12px 16px',
+                border: 'none', background: 'transparent', cursor: 'pointer',
+                textAlign: 'center', fontSize: 14, color: '#333'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              切換使用者
+            </button>
+            <button
+              onClick={handleLogout}
+              style={{
+                display: 'block', width: '100%', padding: '12px 16px',
+                border: 'none', background: 'transparent', cursor: 'pointer',
+                textAlign: 'center', fontSize: 14, color: '#333'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              登出
+            </button>
+          </div>
+        )}
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: '1.1fr 0.9fr' }}>
-        <section className="card">
-          <div className="card__title">搜尋 / 篩選 / 排序</div>
-          <div className="row" style={{ gap: 12, flexWrap: 'wrap' }}>
-            <label className="field" style={{ minWidth: 260 }}>
-              <span className="label">床號 / 姓名</span>
-              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="例如：A-02 / 林" />
-            </label>
-            <label className="field" style={{ minWidth: 220 }}>
-              <span className="label">風險等級</span>
-              <select value={riskFilter} onChange={(e) => setRiskFilter(e.target.value as RiskLevel | 'all')}>
-                <option value="all">全部</option>
-                <option value="low">綠燈（低風險）</option>
-                <option value="medium">黃燈（中風險）</option>
-                <option value="high">紅燈（高風險）</option>
-              </select>
-            </label>
-            <label className="field" style={{ minWidth: 220 }}>
-              <span className="label">排序</span>
-              <select value={sortMode} onChange={(e) => setSortMode(e.target.value as SortMode)}>
-                <option value="bed">按床號排序</option>
-                <option value="risk">按紅黃綠燈排序</option>
-              </select>
-            </label>
-          </div>
-        </section>
+      {/* 中間主要區塊 */}
+      <div style={{
+        flex: 1, display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        marginTop: '-10vh'
+        }}>
+        
+        {/* 標題 */}
+        <h1 style={{ fontSize: '4.5rem', color: '#202124', marginBottom: '2.5rem', fontWeight: 500 }}>
+          口腔護理保健
+        </h1>
 
-        <section className="card">
-          <div className="card__title">風險分佈</div>
-          <div style={{ height: 140 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} barSize={26}>
-                <XAxis dataKey="name" />
-                <YAxis allowDecimals={false} />
-                <Tooltip />
-                <Bar dataKey="value" fill="#2563eb" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </section>
-      </div>
+        {/* 搜尋列 */}
+        <div style={{ width: '100%', maxWidth: '584px', position: 'relative' }}>
+          <label className="field">
+            <span className="label" style={{ fontSize: '16px' }}>搜尋床號 / 姓名</span>
+            <input
+              type="text"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              onKeyDown={handleSearchEnter}
+              placeholder="例如：A-02 / 林"
+              style={{ width: '100%' }}
+            />
+          </label>
 
-      <section className="card">
-        <div className="card__title">住民清單（點選可切換住民，並前往分頁 B/C/D）</div>
-        <div className="tablewrap">
-          <table className="table">
-            <thead>
-              <tr>
-                <th style={{ width: 84 }}>床號</th>
-                <th style={{ width: 64 }}>照片</th>
-                <th>姓名</th>
-                <th style={{ width: 160 }}>紅黃綠燈</th>
-                <th style={{ width: 160 }}>最近評估</th>
-                <th style={{ width: 240 }}>快速連結</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(({ resident, latest, risk }) => (
-                <tr key={resident.id}>
-                  <td>{resident.bedNo}</td>
-                  <td>
-                    <ResidentAvatar resident={resident} size={28} />
-                  </td>
-                  <td>
-                    <button
-                      className="link"
-                      onClick={() => {
-                        dispatch({ type: 'select_resident', id: resident.id })
-                        navigate('/residents')
-                      }}
-                      title="檢視住民基本資料"
-                    >
-                      {resident.name}
-                    </button>
-                  </td>
-                  <td>
-                    <div className="row" style={{ gap: 10 }}>
-                      <RiskLight level={risk} />
-                      <span className="muted">{riskLabel(risk)}</span>
-                    </div>
-                  </td>
-                  <td>{latest ? formatDateTime(latest.createdAt) : '—'}</td>
-                  <td className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
-                    <Link className="pill" to="/residents" onClick={() => dispatch({ type: 'select_resident', id: resident.id })}>
-                      分頁 B
-                    </Link>
-                    <Link className="pill" to="/assessments" onClick={() => dispatch({ type: 'select_resident', id: resident.id })}>
-                      分頁 C
-                    </Link>
-                    <Link className="pill" to="/reports" onClick={() => dispatch({ type: 'select_resident', id: resident.id })}>
-                      分頁 D
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {/* 搜尋結果下拉選單 */}
+          {q.trim() !== '' && (
+            <div style={{
+              position: 'absolute', top: '100%', left: 0, right: 0,
+              backgroundColor: '#fff',
+              boxShadow: '0 4px 12px rgba(32,33,36,.15)',
+              border: '1px solid #dfe1e5',
+              borderRadius: '8px',
+              marginTop: '4px',
+              zIndex: 10,
+              maxHeight: '300px',
+              overflowY: 'auto'
+            }}>
+              {searchResults.length > 0 ? searchResults.map(r => (
+                <div
+                  key={r.id}
+                  onClick={() => {
+                    dispatch({ type: 'select_resident', id: r.id })
+                    navigate('/residents') // 跳轉到住民基本資料
+                  }}
+                  style={{ padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid #f1f3f4', display: 'flex', justifyContent: 'space-between' }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  <span style={{ fontSize: '16px', color: '#202124' }}>{r.bedNo} - {r.name}</span>
+                  <span style={{ color: '#1a73e8', fontSize: '14px' }}>前往資料 &rarr;</span>
+                </div>
+              )) : (
+                <div style={{ padding: '16px', color: '#5f6368', textAlign: 'center' }}>查無符合的住民</div>
+              )}
+            </div>
+          )}
         </div>
-      </section>
 
-      <p className="muted" style={{ marginTop: 10 }}>
-        註：本原型僅示意資料呈現與儀表板互動；不含後端、controller、硬體與語音辨識。
-      </p>
+        {/* 5個選項（原先側邊欄功能） */}
+        <div style={{ display: 'flex', gap: '24px', marginTop: '4rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+          {shortcuts.map((sc) => (
+            <Link
+              key={sc.path}
+              to={sc.path}
+              style={{
+                width: 140, height: 140,
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                textDecoration: 'none', color: '#202124',
+                borderRadius: '8px', cursor: 'pointer',
+                transition: 'background-color 0.2s'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f1f3f4'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              <div style={{
+                width: 64, height: 64,
+                backgroundColor: '#f1f3f4',
+                borderRadius: '50%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '32px', marginBottom: '16px'
+              }}>
+                {sc.icon}
+              </div>
+              <span style={{ fontSize: '18px', fontWeight: 500 }}>{sc.name}</span>
+            </Link>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }

@@ -3,8 +3,10 @@ import { useState } from 'react'
 export function SPMSQForm({
   onSubmit,
   defaultErrors,
+  disabled,
 }: {
   defaultErrors?: number
+  disabled?: boolean
   onSubmit: (data: { spmsqErrors?: number }) => void
 }) {
   const [errors, setErrors] = useState<number>(defaultErrors ?? 0)
@@ -21,10 +23,11 @@ export function SPMSQForm({
           max={10}
           value={errors}
           onChange={(e) => setErrors(Number(e.target.value))}
+          disabled={disabled}
         />
       </label>
 
-      <button className="btn" onClick={() => onSubmit({ spmsqErrors: errors })}>
+      <button className="btn" disabled={disabled} onClick={() => onSubmit({ spmsqErrors: errors })}>
         儲存本次 SPMSQ
       </button>
     </div>

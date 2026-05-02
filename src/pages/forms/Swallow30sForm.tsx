@@ -4,8 +4,10 @@ import type { AssessmentRecord } from '../../store/types'
 export function Swallow30sForm({
   onSubmit,
   defaultValue,
+  disabled,
 }: {
   defaultValue?: AssessmentRecord['swallow30s']
+  disabled?: boolean
   onSubmit: (data: { swallow30s?: AssessmentRecord['swallow30s'] }) => void
 }) {
   const [swallows, setSwallows] = useState<number>(defaultValue?.swallows ?? 4)
@@ -18,15 +20,22 @@ export function Swallow30sForm({
       <div className="row" style={{ gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
         <label className="field" style={{ maxWidth: 280 }}>
           <span className="label">30 秒內吞嚥次數</span>
-          <input type="number" min={0} max={20} value={swallows} onChange={(e) => setSwallows(Number(e.target.value))} />
+          <input
+            type="number"
+            min={0}
+            max={20}
+            value={swallows}
+            onChange={(e) => setSwallows(Number(e.target.value))}
+            disabled={disabled}
+          />
         </label>
         <label className="check">
-          <input type="checkbox" checked={cough} onChange={(e) => setCough(e.target.checked)} />
+          <input type="checkbox" checked={cough} onChange={(e) => setCough(e.target.checked)} disabled={disabled} />
           測驗中出現咳嗽/嗆咳
         </label>
       </div>
 
-      <button className="btn" onClick={() => onSubmit({ swallow30s: { swallows, cough } })}>
+      <button className="btn" disabled={disabled} onClick={() => onSubmit({ swallow30s: { swallows, cough } })}>
         儲存本次 30 秒吞嚥
       </button>
     </div>

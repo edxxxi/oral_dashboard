@@ -206,6 +206,18 @@ textarea:focus {
   background: rgba(37, 99, 235, 0.8);
 }
 
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+  background: rgba(243, 244, 246, 0.8);
+  color: var(--muted);
+}
+
 .btn--sub {
   border-color: rgba(209, 213, 219, 0.5);
   background: rgba(243, 244, 246, 0.8);

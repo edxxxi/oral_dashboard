@@ -40,6 +40,7 @@ export type AssessmentRecord = {
     cough?: boolean
   }
 
+  nursingData?: any // 新增護理評估(SPMSQ/ADL/IADL)的資料
   notes?: string
 }
 

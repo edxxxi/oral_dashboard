@@ -4,8 +4,10 @@ import type { AssessmentRecord } from '../../store/types'
 export function SwallowScreenForm({
   onSubmit,
   defaultValue,
+  disabled,
 }: {
   defaultValue?: AssessmentRecord['swallowScreen']
+  disabled?: boolean
   onSubmit: (data: { swallowScreen?: AssessmentRecord['swallowScreen'] }) => void
 }) {
   const [v, setV] = useState({
@@ -25,11 +27,17 @@ export function SwallowScreenForm({
             type="checkbox"
             checked={v.coughWhenDrinking}
             onChange={(e) => setV((p) => ({ ...p, coughWhenDrinking: e.target.checked }))}
+            disabled={disabled}
           />
           喝水/進食易咳嗽
         </label>
         <label className="check">
-          <input type="checkbox" checked={v.wetVoice} onChange={(e) => setV((p) => ({ ...p, wetVoice: e.target.checked }))} />
+          <input
+            type="checkbox"
+            checked={v.wetVoice}
+            onChange={(e) => setV((p) => ({ ...p, wetVoice: e.target.checked }))}
+            disabled={disabled}
+          />
           濕濁聲/聲音改變
         </label>
         <label className="check">
@@ -37,6 +45,7 @@ export function SwallowScreenForm({
             type="checkbox"
             checked={v.chokingHistory}
             onChange={(e) => setV((p) => ({ ...p, chokingHistory: e.target.checked }))}
+            disabled={disabled}
           />
           近期有嗆咳史
         </label>
@@ -50,7 +59,7 @@ export function SwallowScreenForm({
         </label>
       </div>
 
-      <button className="btn" onClick={() => onSubmit({ swallowScreen: v })}>
+      <button className="btn" disabled={disabled} onClick={() => onSubmit({ swallowScreen: v })}>
         儲存本次吞嚥篩檢
       </button>
     </div>
