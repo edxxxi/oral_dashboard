@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useSelectedResident, useStore } from '../store/store'
 import { useAuth } from '../auth'
+import { formatDob } from '../utils/date'
 
 export default function ResidentsBasicsPage() {
   const resident = useSelectedResident()
@@ -16,6 +17,7 @@ export default function ResidentsBasicsPage() {
   const [view, setView] = useState<'list' | 'add'>('list')
   const [newName, setNewName] = useState('')
   const [newDob, setNewDob] = useState('')
+  const [newBedNo, setNewBedNo] = useState('')
 
   const [prevResidentId, setPrevResidentId] = useState<string | undefined>(undefined)
 
@@ -196,6 +198,17 @@ export default function ResidentsBasicsPage() {
               </label>
 
               <label className="field">
+                <span className="label" style={{ fontSize: '18px', fontWeight: 600 }}>床號</span>
+                <input
+                  type="text"
+                  value={newBedNo}
+                  onChange={(e) => setNewBedNo(e.target.value)}
+                  placeholder="例：A-01"
+                  style={{ fontSize: '18px', padding: '12px', borderRadius: '6px', border: '1px solid #d1d5db' }}
+                />
+              </label>
+
+              <label className="field">
                 <span className="label" style={{ fontSize: '18px', fontWeight: 600 }}>出生年月日</span>
                 <input
                   type="date"
@@ -232,17 +245,17 @@ export default function ResidentsBasicsPage() {
                 style={{ fontSize: '18px', padding: '12px 24px', marginTop: '16px', alignSelf: 'flex-start' }}
                 onClick={async () => {
                   if (!newName.trim()) return alert('請輸入病人姓名');
+                  if (!newBedNo.trim()) return alert('請輸入床號');
                   
                   let age = 65;
                   if (newDob) {
                     age = new Date().getFullYear() - new Date(newDob).getFullYear();
                   }
 
-                  const bedNo = `New-${Math.floor(Math.random() * 100)}`;
-                  await addResident({ name: newName.trim(), bedNo, age });
+                  await addResident({ name: newName.trim(), bedNo: newBedNo.trim(), age, dob: newDob || undefined });
                   
                   alert(`成功新增病人：${newName.trim()}！已為您自動切換。`);
-                  setNewName(''); setNewDob('');
+                  setNewName(''); setNewDob(''); setNewBedNo('');
                   setView('list');
                 }}
               >
@@ -272,7 +285,13 @@ export default function ResidentsBasicsPage() {
                     
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', color: '#4b5563', fontSize: '18px' }}>
                       <div><strong style={{ color: '#111827', display: 'inline-block', width: '120px' }}>床號：</strong>{resident.bedNo}</div>
-                      <div><strong style={{ color: '#111827', display: 'inline-block', width: '120px' }}>出生年月日：</strong>{new Date().getFullYear() - resident.age}-01-01 ({resident.age} 歲)</div>
+                      <div>
+                        <strong style={{ color: '#111827', display: 'inline-block', width: '120px' }}>出生年月日：</strong>
+                        {resident.dob
+                          ? `${formatDob(resident.dob)}（${resident.age} 歲）`
+                          : `（${resident.age} 歲）`
+                        }
+                      </div>
                     </div>
                   </div>
                   
