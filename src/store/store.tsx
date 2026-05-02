@@ -109,7 +109,7 @@ type Store = {
   dispatch: React.Dispatch<Action>
   loading: boolean
   // 新增：直接操作資料庫的異步方法
-  addResident: (fields: { name: string; bedNo: string; age: number; dob?: string }) => Promise<void>
+  addResident: (fields: { name: string; bedNo: string; age: number }) => Promise<void>
   updateResident: (id: string, patch: Partial<Resident>) => Promise<void>
   addAssessment: (residentId: string, patch: Partial<AssessmentRecord>) => Promise<void>
 }
@@ -189,7 +189,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   // 2. 新增住民並同步到雲端
-  const addResident = async (fields: { name: string; bedNo: string; age: number; dob?: string }) => {
+  const addResident = async (fields: { name: string; bedNo: string; age: number }) => {
     const defaultDietStatus = { feedingMethod: 'oral', dietType: 'full', slpNotes: '', dietitianNotes: '' }
     const dbRecord = {
       name: fields.name,

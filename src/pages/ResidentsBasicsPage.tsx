@@ -239,7 +239,7 @@ export default function ResidentsBasicsPage() {
                   }
 
                   const bedNo = `New-${Math.floor(Math.random() * 100)}`;
-                  await addResident({ name: newName.trim(), bedNo, age, dob: newDob || undefined });
+                  await addResident({ name: newName.trim(), bedNo, age });
                   
                   alert(`成功新增病人：${newName.trim()}！已為您自動切換。`);
                   setNewName(''); setNewDob('');
