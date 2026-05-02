@@ -139,8 +139,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         }
 
         const [resResidents, resAssessments] = await Promise.all([
-          supabase.from('residents').select('*'),
-          supabase.from('assessment_records').select('*').order('created_at', { ascending: false })
+          (supabase.from('residents') as any).select('*'),
+          (supabase.from('assessment_records') as any).select('*').order('created_at', { ascending: false })
         ])
 
         if (resResidents.error) throw resResidents.error
@@ -150,14 +150,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           type: 'set_initial_data',
           state: {
             ...initialState,
-            residents: (resResidents.data || []).map(r => ({
+            residents: (resResidents.data || []).map((r: any) => ({
               ...r,
               bedNo: r.bed_no,
               medicalSummary: r.medical_summary,
               oralCheckNotes: r.oral_check_notes,
               dietStatus: r.diet_status
             })),
-            assessments: (resAssessments.data || []).map(a => ({
+            assessments: (resAssessments.data || []).map((a: any) => ({
               ...a,
               residentId: a.resident_id,
               monthKey: a.month_key,
@@ -200,7 +200,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     delete dbPatch.medicalSummary;
     delete dbPatch.oralCheckNotes;
 
-    const { error } = await supabase.from('residents').update(dbPatch).eq('id', id);
+    const { error } = await (supabase.from('residents') as any).update(dbPatch).eq('id', id);
     
     if (error) {
       alert('雲端更新失敗: ' + error.message);
@@ -229,8 +229,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       notes: patch.notes
     }
 
-    const { data, error } = await supabase
-      .from('assessment_records')
+    const { data, error } = await (supabase.from('assessment_records') as any)
       .insert([dbRecord])
       .select()
 
