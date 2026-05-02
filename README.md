@@ -1,16 +1,4 @@
-# 高齡吞嚥風險防範｜口腔功能統合儀表板（前端原型）
-
-此專案為基於 **Vite + React + TypeScript** 打造的「可直接操作/瀏覽」臨床前端原型系統。主要用於高齡者的口腔與吞嚥功能、營養狀況及日常護理評估的綜合管理，並視覺化呈現：住民紅黃綠燈風險儀表板、跨專業量表評估、以及 AI 綜合分析報告。
-
-- 支援 **Supabase 雲端資料庫** 即時同步
-- 內建 **Mock Data 防呆機制**，無資料庫也可透過 localStorage 完美運行
-- 採用 **響應式與觸控友善 (Touch-friendly) 介面**，適合臨床平板操作
-- 已設定 SPA 路由，支援一鍵快速部署至 **Vercel**
-
-GitHub Repo：<https://github.com/JosephKuo0402/oral-dashboard-frontend>
-
----
-
+# 高齡吞嚥風險防範｜口腔功能統合儀表板
 ## 功能與分頁
 
 ### Dashboard（首頁）
