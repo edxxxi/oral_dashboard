@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useResidentAssessments, useSelectedResident, useStore } from '../store/store'
 import { useAuth } from '../auth'
 import { formatDateTime } from '../utils/date'
@@ -16,7 +16,6 @@ export default function AssessmentsPage() {
   const resident = useSelectedResident()
   const { state, dispatch, addAssessment } = useStore()
   const { user } = useAuth()
-  const navigate = useNavigate()
   const location = useLocation()
 
   const assessments = useResidentAssessments(resident?.id ?? null)

@@ -21,7 +21,7 @@ const options = [
   { label: '嚴重 (4 分)', value: 4 },
 ]
 
-export function EAT10Form({ defaultScore, onSubmit }: { defaultScore?: number; onSubmit: (patch: any) => void }) {
+export function EAT10Form({ onSubmit }: { defaultScore?: number; onSubmit: (patch: any) => void }) {
   const [answers, setAnswers] = useState<number[]>(Array(10).fill(0))
 
   const totalScore = useMemo(() => answers.reduce((a, b) => a + b, 0), [answers])

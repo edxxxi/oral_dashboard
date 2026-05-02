@@ -20,7 +20,7 @@ const options = [
   { label: '沒辦法吃', value: 2 },
 ]
 
-export function ChewingForm({ defaultScore, onSubmit }: { defaultScore?: number; onSubmit: (patch: any) => void }) {
+export function ChewingForm({ onSubmit }: { defaultScore?: number; onSubmit: (patch: any) => void }) {
   // 預設全選 0 (容易吃)
   const [answers, setAnswers] = useState<number[]>(Array(11).fill(0))
 

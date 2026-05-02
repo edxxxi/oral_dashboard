@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, Legend } from 'recharts'
 import { RiskLight } from '../components/RiskLight'
 import { useResidentAssessments, useSelectedResident, useStore } from '../store/store'
@@ -11,7 +11,6 @@ export default function ReportPage() {
   const resident = useSelectedResident()
   const { state, dispatch } = useStore()
   const { user } = useAuth()
-  const navigate = useNavigate()
   const location = useLocation()
 
   const assessments = useResidentAssessments(resident?.id ?? null)
