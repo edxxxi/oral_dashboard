@@ -9,12 +9,20 @@ export const supabase = (supabaseUrl && supabaseAnonKey)
   : createMockSupabaseClient()
 
 // Mock Supabase 客戶端，當環境變數缺失時使用
+// 支援方法鏈 (insert().select()、update().eq() 等)
 function createMockSupabaseClient() {
-  return {
-    from: () => ({
-      select: () => Promise.resolve({ data: null, error: { message: 'Supabase 未配置' } }),
-      insert: () => Promise.resolve({ data: null, error: { message: 'Supabase 未配置' } }),
-      update: () => Promise.resolve({ data: null, error: { message: 'Supabase 未配置' } }),
-    }),
+  const mockError = { message: 'Supabase 未配置' }
+  function chain(): any {
+    const c: any = {
+      select: () => chain(),
+      insert: () => chain(),
+      update: () => chain(),
+      eq: () => chain(),
+      order: () => chain(),
+      then: (res: any, rej: any) => Promise.resolve({ data: null, error: mockError }).then(res, rej),
+      catch: (rej: any) => Promise.resolve({ data: null, error: mockError }).catch(rej),
+    }
+    return c
   }
+  return { from: () => chain() }
 }
