@@ -280,16 +280,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       .select()
 
     if (error) {
-      console.warn('雲端新增住民失敗，轉為本地儲存:', error.message);
-      // 失敗時退回本地儲存，使用生成的 ID（與 addAssessment 相同策略）
-      const newResident: Resident = {
-        ...resident,
-        id: makeId('res'),
-        attachments: resident.attachments || [],
-        medicalSummary: resident.medicalSummary || '',
-        oralCheckNotes: resident.oralCheckNotes || '',
-      } as Resident;
-      dispatch({ type: 'add_resident_local', resident: newResident });
+      alert('新增住民失敗: ' + error.message);
+      throw error;
     } else if (data && data[0]) {
       // 將資料庫回傳的結果（含資料庫產生的真實 ID）轉回前端格式
       const newResident: Resident = {

@@ -252,18 +252,22 @@ export default function ResidentsBasicsPage() {
                     age = new Date().getFullYear() - new Date(newDob).getFullYear();
                   }
 
-                  // 呼叫新增方法（若雲端失敗會自動退回本地儲存）
-                  await addResident({
-                    bedNo: newBedNo.trim(),
-                    name: newName.trim(),
-                    age, 
-                    dob: newDob || undefined,
-                    attachments: [], 
-                    dietStatus: { feedingMethod: 'oral', dietType: 'full', slpNotes: '', dietitianNotes: '' }
-                  });
-                  
-                  setNewName(''); setNewDob(''); setNewBedNo('');
-                  setView('list');
+                  // 呼叫新增方法
+                  try {
+                    await addResident({
+                      bedNo: newBedNo.trim(),
+                      name: newName.trim(),
+                      age, 
+                      dob: newDob || undefined,
+                      attachments: [], 
+                      dietStatus: { feedingMethod: 'oral', dietType: 'full', slpNotes: '', dietitianNotes: '' }
+                    });
+                    setNewName(''); setNewDob(''); setNewBedNo('');
+                    setView('list');
+                  } catch (err) {
+                    // 錯誤已由 addResident 顯示，表單保持開啟讓使用者重試
+                    console.error('新增住民失敗:', err);
+                  }
                 }}
               >
                 儲存新增
