@@ -264,8 +264,9 @@ export default function ResidentsBasicsPage() {
                     });
                     setNewName(''); setNewDob(''); setNewBedNo('');
                     setView('list');
-                  } catch {
+                  } catch (err) {
                     // 錯誤已由 addResident 顯示，表單保持開啟讓使用者重試
+                    console.error('新增住民失敗:', err);
                   }
                 }}
               >
