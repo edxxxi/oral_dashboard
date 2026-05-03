@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useEffect, useMemo, useReducer, useState } from 'react'
+import React, { createContext, useContext, useCallback, useEffect, useMemo, useReducer, useState } from 'react'
 import { supabase } from '../utils/supabaseClient'
 import { makeId } from '../utils/ids'
 import { todayISO } from '../utils/date'
@@ -111,6 +111,8 @@ type Store = {
   // 新增：直接操作資料庫的異步方法
   updateResident: (id: string, patch: Partial<Resident>) => Promise<void>
   addAssessment: (residentId: string, patch: Partial<AssessmentRecord>) => Promise<void>
+  // 新增：將住民寫入雲端資料庫
+  addResident: (resident: Partial<Resident>) => Promise<void>
 }
 
 const StoreContext = createContext<Store | null>(null)
@@ -188,7 +190,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   // 2. 異步更新住民資料並同步到雲端
-  const updateResident = async (id: string, patch: Partial<Resident>) => {
+  const updateResident = useCallback(async (id: string, patch: Partial<Resident>) => {
     // 準備要傳給資料庫的格式（轉回下底線）
     const dbPatch: any = { ...patch };
     if (patch.bedNo) dbPatch.bed_no = patch.bedNo;
@@ -207,10 +209,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     } else {
       dispatch({ type: 'update_resident_local', id, patch });
     }
-  }
+  }, [dispatch])
 
   // 3. 新增評估紀錄並同步到雲端
-  const addAssessment = async (residentId: string, patch: Partial<AssessmentRecord>) => {
+  const addAssessment = useCallback(async (residentId: string, patch: Partial<AssessmentRecord>) => {
     const createdAt = todayISO()
     const d = new Date(createdAt)
     const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
@@ -255,15 +257,52 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       
       dispatch({ type: 'add_assessment_local', record: newRecord });
     }
-  }
+  }, [dispatch])
+
+  // 4. 新增住民並同步到雲端
+  const addResident = useCallback(async (resident: Partial<Resident>) => {
+    // 準備要傳給資料庫的格式（將小駝峰命名轉回資料庫底線命名）
+    const dbRecord: any = { ...resident };
+    if (resident.bedNo) dbRecord.bed_no = resident.bedNo;
+    if (resident.medicalSummary) dbRecord.medical_summary = resident.medicalSummary;
+    if (resident.oralCheckNotes) dbRecord.oral_check_notes = resident.oralCheckNotes;
+    if (resident.dietStatus) dbRecord.diet_status = resident.dietStatus;
+
+    // 刪除前端專用的名稱以免資料庫報錯
+    delete dbRecord.bedNo;
+    delete dbRecord.medicalSummary;
+    delete dbRecord.oralCheckNotes;
+    delete dbRecord.dietStatus;
+    delete dbRecord.id; // 確保由 Supabase 資料庫自動產生 ID (UUID/遞增 ID)
+
+    const { data, error } = await (supabase.from('residents') as any)
+      .insert([dbRecord])
+      .select()
+
+    if (error) {
+      console.error('雲端新增住民失敗:', error.message);
+      alert('新增住民失敗: ' + error.message);
+    } else if (data && data[0]) {
+      // 將資料庫回傳的結果（含資料庫產生的真實 ID）轉回前端格式
+      const newResident: Resident = {
+        ...data[0],
+        bedNo: data[0].bed_no,
+        medicalSummary: data[0].medical_summary,
+        oralCheckNotes: data[0].oral_check_notes,
+        dietStatus: data[0].diet_status
+      } as Resident;
+      dispatch({ type: 'add_resident_local', resident: newResident });
+    }
+  }, [dispatch])
 
   const value = useMemo(() => ({ 
     state, 
     dispatch, 
     loading, 
     updateResident, 
-    addAssessment 
-  }), [state, loading])
+    addAssessment,
+    addResident
+  }), [state, loading, updateResident, addAssessment, addResident])
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
 }
