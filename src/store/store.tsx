@@ -299,7 +299,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     state, 
     dispatch, 
     loading, 
-    addResident,
     updateResident, 
     addAssessment,
     addResident
