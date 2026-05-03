@@ -252,9 +252,9 @@ export default function ResidentsBasicsPage() {
                     age = new Date().getFullYear() - new Date(newDob).getFullYear();
                   }
 
-                  // 呼叫雲端的新增方法 (id 交由資料庫自動產生)
+                  // 呼叫新增方法（若雲端失敗會自動退回本地儲存）
                   await addResident({
-                    bedNo: newBedNo.trim() || `New-${Math.floor(Math.random() * 100)}`, 
+                    bedNo: newBedNo.trim(),
                     name: newName.trim(),
                     age, 
                     dob: newDob || undefined,
@@ -262,7 +262,6 @@ export default function ResidentsBasicsPage() {
                     dietStatus: { feedingMethod: 'oral', dietType: 'full', slpNotes: '', dietitianNotes: '' }
                   });
                   
-                  alert(`成功新增病人：${newName.trim()}！資料已同步至雲端。`);
                   setNewName(''); setNewDob(''); setNewBedNo('');
                   setView('list');
                 }}
