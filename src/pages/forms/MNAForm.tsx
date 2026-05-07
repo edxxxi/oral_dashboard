@@ -55,10 +55,12 @@ const questions = [
 export function MNAForm({
   onSubmit,
   disabled,
+  onSwitchResident
 }: {
   defaultScore?: number
   disabled?: boolean
   onSubmit: (data: { mnaScore?: number }) => void
+  onSwitchResident?: () => void
 }) {
   // 初始化 6 題的答案皆為 0 分
   const [answers, setAnswers] = useState<number[]>(Array(6).fill(0))
@@ -113,9 +115,16 @@ export function MNAForm({
           總分：{totalScore} 分
           {totalScore <= 11 && <span style={{ marginLeft: '24px', fontSize: '28px', color: '#ef4444', backgroundColor: '#fee2e2', padding: '8px 16px', borderRadius: '20px' }}>⚠️ 具營養不良風險</span>}
         </div>
-        <button className="btn" disabled={disabled} style={{ padding: '16px 40px', fontSize: '32px' }} onClick={() => onSubmit({ mnaScore: totalScore })}>
-          儲存評估
-        </button>
+        <div style={{ display: 'flex', gap: '16px' }}>
+          <button className="btn" disabled={disabled} style={{ padding: '16px 40px', fontSize: '32px' }} onClick={() => onSubmit({ mnaScore: totalScore })}>
+            儲存評估
+          </button>
+          {onSwitchResident && (
+            <button className="btn btn--sub" style={{ padding: '16px 24px', fontSize: '32px', backgroundColor: '#ffffff', border: '2px solid #d1d5db', color: '#4b5563' }} onClick={onSwitchResident}>
+              🔄 切換住民
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )

@@ -21,7 +21,7 @@ const options = [
   { label: '嚴重 (4 分)', value: 4 },
 ]
 
-export function EAT10Form({ onSubmit }: { defaultScore?: number; onSubmit: (patch: any) => void }) {
+export function EAT10Form({ onSubmit, onSwitchResident }: { defaultScore?: number; onSubmit: (patch: any) => void; onSwitchResident?: () => void }) {
   const [answers, setAnswers] = useState<number[]>(Array(10).fill(0))
 
   const totalScore = useMemo(() => answers.reduce((a, b) => a + b, 0), [answers])
@@ -73,9 +73,16 @@ export function EAT10Form({ onSubmit }: { defaultScore?: number; onSubmit: (patc
           總分：{totalScore} 分
           {totalScore >= 3 && <span style={{ marginLeft: '24px', fontSize: '28px', color: '#ef4444', backgroundColor: '#fee2e2', padding: '8px 16px', borderRadius: '20px' }}>⚠️ 具吞嚥障礙風險</span>}
         </div>
-        <button className="btn" style={{ padding: '16px 40px', fontSize: '32px' }} onClick={() => onSubmit({ eat10Score: totalScore })}>
-          儲存評估
-        </button>
+        <div style={{ display: 'flex', gap: '16px' }}>
+          <button className="btn" style={{ padding: '16px 40px', fontSize: '32px' }} onClick={() => onSubmit({ eat10Score: totalScore })}>
+            儲存評估
+          </button>
+          {onSwitchResident && (
+            <button className="btn btn--sub" style={{ padding: '16px 24px', fontSize: '32px', backgroundColor: '#ffffff', border: '2px solid #d1d5db', color: '#4b5563' }} onClick={onSwitchResident}>
+              🔄 切換住民
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )

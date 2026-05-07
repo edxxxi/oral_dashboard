@@ -7,7 +7,7 @@ import { computeRiskLevel, riskLabel } from '../utils/risk'
 import { RiskLight } from '../components/RiskLight'
 import { MNAForm } from './forms/MNAForm'
 import { EAT10Form } from './forms/EAT10Form'
-import { ChewingForm } from './forms/ChewingForm'
+import { RSSTForm } from './forms/ChewingForm'
 import NursingAssessments from './forms/NursingAssessments'
 import type { AssessmentRecord } from '../store/types'
 
@@ -20,7 +20,7 @@ export default function AssessmentsPage() {
   const assessments = useResidentAssessments(resident?.id ?? null)
   const latest = assessments[0]
   
-  const [tab, setTab] = useState<'eat10' | 'mna' | 'chewing' | 'nursing'>('eat10')
+  const [tab, setTab] = useState<'eat10' | 'mna' | 'rsst' | 'nursing'>('eat10')
   const [q, setQ] = useState('')
   const [showUserMenu, setShowUserMenu] = useState(false)
 
@@ -191,12 +191,6 @@ export default function AssessmentsPage() {
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
                   <h2 style={{ margin: 0, fontSize: '28px', color: '#111827' }}>{resident.name}</h2>
-                  <button 
-                    onClick={() => dispatch({ type: 'select_resident', id: null })} 
-                    style={{ padding: '6px 12px', fontSize: '14px', borderRadius: '16px', backgroundColor: '#f3f4f6', color: '#4b5563', border: '1px solid #d1d5db', cursor: 'pointer' }}
-                  >
-                    🔄 切換住民
-                  </button>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <RiskLight level={risk} />
                     <span style={{ fontSize: '14px', fontWeight: 500, color: '#4b5563' }}>{riskLabel(risk)}</span>
@@ -223,11 +217,11 @@ export default function AssessmentsPage() {
               <button className={tab === 'mna' ? 'btn' : 'btn btn--sub'} onClick={() => setTab('mna')} style={{ padding: '8px 24px', fontSize: '16px', borderRadius: '20px' }}>
                 2. MNA-SF 營養篩檢
               </button>
-              <button className={tab === 'chewing' ? 'btn' : 'btn btn--sub'} onClick={() => setTab('chewing')} style={{ padding: '8px 24px', fontSize: '16px', borderRadius: '20px' }}>
-                3. 咀嚼能力篩檢
+              <button className={tab === 'rsst' ? 'btn' : 'btn btn--sub'} onClick={() => setTab('rsst')} style={{ padding: '8px 24px', fontSize: '16px', borderRadius: '20px' }}>
+                3. RSST 唾液吞嚥測試
               </button>
               <button className={tab === 'nursing' ? 'btn' : 'btn btn--sub'} onClick={() => setTab('nursing')} style={{ padding: '8px 24px', fontSize: '16px', borderRadius: '20px' }}>
-                4. 護理評估 (SPMSQ/ADL/IADL)
+                4. 認知功能評估 (SPMSQ)
               </button>
             </div>
 
@@ -236,13 +230,13 @@ export default function AssessmentsPage() {
               <div className="card__title" style={{ fontSize: '20px', marginBottom: '20px' }}>本次評估輸入</div>
               
               {tab === 'eat10' ? (
-                <EAT10Form defaultScore={(latest as any)?.eat10Score} onSubmit={(d) => savePatch(d)} />
+                <EAT10Form defaultScore={(latest as any)?.eat10Score} onSubmit={(d) => savePatch(d)} onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }} />
               ) : tab === 'mna' ? (
-                <MNAForm defaultScore={latest?.mnaScore} onSubmit={(d) => savePatch(d)} />
-              ) : tab === 'chewing' ? (
-                <ChewingForm defaultScore={(latest as any)?.chewingScore} onSubmit={(d) => savePatch(d)} />
+                <MNAForm defaultScore={latest?.mnaScore} onSubmit={(d) => savePatch(d)} onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }} />
+              ) : tab === 'rsst' ? (
+                <RSSTForm defaultScore={(latest as any)?.rsstScore} onSubmit={(d) => savePatch(d)} onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }} />
               ) : (
-                <NursingAssessments onSave={(d) => savePatch({ nursingData: d, notes: d.notes } as any)} />
+                <NursingAssessments onSave={(d) => savePatch({ nursingData: d, notes: d.notes } as any)} onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }} />
               )}
             </section>
 
@@ -256,8 +250,8 @@ export default function AssessmentsPage() {
                       <th style={{ width: 180 }}>評估時間</th>
                       <th style={{ width: 120 }}>EAT-10 分數</th>
                       <th style={{ width: 120 }}>MNA-SF 分數</th>
-                      <th style={{ width: 120 }}>咀嚼障礙項</th>
-                      <th style={{ width: 140 }}>護理評估紀錄</th>
+                      <th style={{ width: 120 }}>RSST 吞嚥次數</th>
+                      <th style={{ width: 140 }}>認知功能評估</th>
                       <th style={{ minWidth: 100 }}>備註</th>
                     </tr>
                   </thead>
@@ -270,7 +264,7 @@ export default function AssessmentsPage() {
                         <td className="muted">{formatDateTime(a.createdAt)}</td>
                         <td>{typeof (a as any).eat10Score === 'number' ? `${(a as any).eat10Score} 分` : '—'}</td>
                         <td>{typeof a.mnaScore === 'number' ? a.mnaScore : '—'}</td>
-                        <td>{typeof (a as any).chewingScore === 'number' ? `${(a as any).chewingScore} 種` : '—'}</td>
+                        <td>{typeof (a as any).rsstScore === 'number' ? `${(a as any).rsstScore} 次` : '—'}</td>
                         <td>
                           {(a as any).nursingData ? (
                             <span style={{ fontSize: '14px', color: '#059669', backgroundColor: '#d1fae5', padding: '4px 8px', borderRadius: '12px' }}>

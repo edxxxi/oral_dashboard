@@ -1,82 +1,68 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 
-const questions = [
-  '1. 硬豆干',
-  '2. 炒花生',
-  '3. 芭樂(整顆)',
-  '4. 炸雞',
-  '5. 水煮玉米(整枝)',
-  '6. 蘋果/梨子/蓮霧/芭樂(切片)',
-  '7. 烤魷魚/雞胗',
-  '8. 水煮花枝/滷豬耳朵',
-  '9. 柳丁(有切片)',
-  '10. 竹筍/敏豆/花椰菜/切片的小黃瓜',
-  '11. 煮熟的紅/白蘿蔔',
-]
+export function RSSTForm({ defaultScore, onSubmit, onSwitchResident }: { defaultScore?: number; onSubmit: (patch: any) => void; onSwitchResident?: () => void }) {
+  const [count, setCount] = useState<number | ''>(defaultScore ?? '')
 
-const options = [
-  { label: '容易吃', value: 0 },
-  { label: '有些吃力', value: 1 },
-  { label: '沒辦法吃', value: 2 },
-]
-
-export function ChewingForm({ onSubmit }: { defaultScore?: number; onSubmit: (patch: any) => void }) {
-  // 預設全選 0 (容易吃)
-  const [answers, setAnswers] = useState<number[]>(Array(11).fill(0))
-
-  // 計算「有些吃力(1)」與「沒辦法吃(2)」的總數
-  const totalScore = useMemo(() => answers.filter(a => a === 1 || a === 2).length, [answers])
+  const isRisk = typeof count === 'number' && count <= 2
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <div style={{ backgroundColor: '#eff6ff', padding: '16px', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
-        <p style={{ margin: 0, color: '#1e3a8a', fontSize: '28px', fontWeight: 500, lineHeight: 1.6 }}>
-          💡 說明：請評估病人 <strong>6 個月內</strong> 的咀嚼能力。
+        <p style={{ margin: 0, color: '#1e3a8a', fontSize: '26px', fontWeight: 500, lineHeight: 1.6 }}>
+          💡 說明：重複唾液吞嚥測試 (RSST)
           <br />
-          若「有些吃力」與「沒辦法吃」的食物 <strong>≧ 4 種</strong>，即「可能」有咀嚼障礙風險。
+          1. 請民眾正坐。<br />
+          2. 濕潤口腔 (以 1 c.c.水濕潤口腔，或喝一口水，吞完後再開始)。<br />
+          3. 食指放在舌下，中指放在喉結上方。<br />
+          4. 計時 30 秒，計算喉結上下移動次數。<br />
+          <span style={{ color: '#dc2626', fontWeight: 600 }}>注意：若次數 ≦ 2 次，即「可能」有吞嚥障礙風險。</span>
         </p>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        {questions.map((q, i) => (
-          <div key={i} style={{ padding: '24px', backgroundColor: '#f9fafb', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
-            <p style={{ margin: '0 0 20px 0', fontSize: '32px', fontWeight: 600, color: '#111827' }}>{q}</p>
-            <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-              {options.map((opt) => (
-                <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontSize: '28px' }}>
-                  <input
-                    type="radio"
-                    name={`chew-q${i}`}
-                    value={opt.value}
-                    checked={answers[i] === opt.value}
-                    onChange={() => {
-                      const newAnswers = [...answers]
-                      newAnswers[i] = opt.value
-                      setAnswers(newAnswers)
-                    }}
-                    style={{ width: '40px', height: '40px', cursor: 'pointer' }}
-                  />
-                  {opt.label}
-                </label>
-              ))}
-            </div>
-          </div>
-        ))}
+      <div style={{ padding: '24px', backgroundColor: '#f9fafb', borderRadius: '12px', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: '20px' }}>
+        <label style={{ fontSize: '31px', fontWeight: 600, color: '#111827' }}>
+          共計：
+        </label>
+        <input
+          type="number"
+          min="0"
+          value={count}
+          onChange={(e) => setCount(e.target.value === '' ? '' : Number(e.target.value))}
+          placeholder="次數"
+          style={{ width: '150px', padding: '12px 16px', fontSize: '31px', borderRadius: '8px', border: '1px solid #d1d5db' }}
+        />
+        <span style={{ fontSize: '31px', fontWeight: 600, color: '#111827' }}>次</span>
       </div>
 
       <div style={{ 
         display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
         marginTop: '16px', padding: '24px', 
-        backgroundColor: totalScore >= 4 ? '#fef2f2' : '#f0fdf4', 
-        borderRadius: '8px', border: `2px solid ${totalScore >= 4 ? '#fecaca' : '#bbf7d0'}` 
+        backgroundColor: typeof count === 'number' ? (isRisk ? '#fef2f2' : '#f0fdf4') : '#f3f4f6', 
+        borderRadius: '8px', border: `2px solid ${typeof count === 'number' ? (isRisk ? '#fecaca' : '#bbf7d0') : '#e5e7eb'}` 
       }}>
-        <div style={{ fontSize: '40px', fontWeight: 600, color: totalScore >= 4 ? '#991b1b' : '#166534', display: 'flex', alignItems: 'center' }}>
-          總計：{totalScore} 種 (吃力或無法吃)
-          {totalScore >= 4 && <span style={{ marginLeft: '24px', fontSize: '28px', color: '#ef4444', backgroundColor: '#fee2e2', padding: '8px 16px', borderRadius: '20px' }}>⚠️ 具咀嚼障礙風險</span>}
+        <div style={{ fontSize: '44px', fontWeight: 600, color: typeof count === 'number' ? (isRisk ? '#991b1b' : '#166534') : '#6b7280', display: 'flex', alignItems: 'center' }}>
+          測驗結果：{typeof count === 'number' ? `${count} 次` : '尚未輸入'}
+          {isRisk && <span style={{ marginLeft: '24px', fontSize: '26px', color: '#ef4444', backgroundColor: '#fee2e2', padding: '8px 16px', borderRadius: '20px' }}>⚠️ 具吞嚥障礙風險</span>}
         </div>
-        <button className="btn" style={{ padding: '16px 40px', fontSize: '32px' }} onClick={() => onSubmit({ chewingScore: totalScore })}>
-          儲存評估
-        </button>
+        <div style={{ display: 'flex', gap: '16px' }}>
+          <button 
+            className="btn" 
+            disabled={count === ''}
+            style={{ padding: '16px 40px', fontSize: '31px', opacity: count === '' ? 0.5 : 1, cursor: count === '' ? 'not-allowed' : 'pointer' }} 
+            onClick={() => {
+              if (typeof count === 'number') {
+                onSubmit({ rsstScore: count })
+              }
+            }}
+          >
+            儲存評估
+          </button>
+          {onSwitchResident && (
+            <button className="btn btn--sub" style={{ padding: '16px 24px', fontSize: '31px', backgroundColor: '#ffffff', border: '2px solid #d1d5db', color: '#4b5563' }} onClick={onSwitchResident}>
+              🔄 切換住民
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )

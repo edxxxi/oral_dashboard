@@ -38,7 +38,6 @@ export default function ReportPage() {
         month: monthKey,
         weight: typeof a.weightKg === 'number' ? a.weightKg : null,
         risk: computeRiskLevel(a) === 'high' ? 3 : computeRiskLevel(a) === 'medium' ? 2 : 1,
-        adl: (a as any)?.nursingData?.adl?.total ?? null,
       }))
   }, [assessments])
 
@@ -212,25 +211,14 @@ export default function ReportPage() {
               </section>
             </div>
 
-            {/* 2. 護理評估結果 (如果有資料) */}
+            {/* 2. 認知功能評估結果 (如果有資料) */}
             {nursingData && (
               <section style={{ backgroundColor: '#ffffff', padding: '24px 32px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                <div style={{ fontSize: '20px', fontWeight: 700, color: '#111827', marginBottom: '20px', borderBottom: '2px solid #f3f4f6', paddingBottom: '12px' }}>最新護理評估指標</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+                <div style={{ fontSize: '20px', fontWeight: 700, color: '#111827', marginBottom: '20px', borderBottom: '2px solid #f3f4f6', paddingBottom: '12px' }}>最新認知功能評估指標</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
                   <div style={{ backgroundColor: '#f9fafb', padding: '16px', borderRadius: '8px', border: '1px solid #f3f4f6' }}>
                     <div style={{ color: '#6b7280', fontSize: '14px', marginBottom: '8px' }}>SPMSQ 心智功能</div>
                     <div style={{ fontSize: '22px', fontWeight: 700, color: '#4338ca' }}>{nursingData.spmsq?.result || '—'}</div>
-                  </div>
-                  <div style={{ backgroundColor: '#f9fafb', padding: '16px', borderRadius: '8px', border: '1px solid #f3f4f6' }}>
-                    <div style={{ color: '#6b7280', fontSize: '14px', marginBottom: '8px' }}>ADL 日常生活功能</div>
-                    <div style={{ fontSize: '22px', fontWeight: 700, color: '#047857' }}>{nursingData.adl?.total ?? '—'} <span style={{ fontSize: '16px', fontWeight: 500, color: '#6b7280' }}>/ 100 分</span></div>
-                  </div>
-                  <div style={{ backgroundColor: '#f9fafb', padding: '16px', borderRadius: '8px', border: '1px solid #f3f4f6' }}>
-                    <div style={{ color: '#6b7280', fontSize: '14px', marginBottom: '8px' }}>IADL 工具性日常生活</div>
-                    <div style={{ fontSize: '22px', fontWeight: 700, color: nursingData.iadl?.isMildDisabled ? '#b91c1c' : '#047857' }}>
-                      {nursingData.iadl?.isMildDisabled ? '輕度失能' : '正常'} 
-                      <span style={{ fontSize: '16px', fontWeight: 500, color: '#6b7280', marginLeft: '8px' }}>({nursingData.iadl?.total ?? '—'} / 24 分)</span>
-                    </div>
                   </div>
                 </div>
               </section>
@@ -250,7 +238,6 @@ export default function ReportPage() {
                     <Legend verticalAlign="top" height={36} />
                     {/* 加入顯眼的資料點 dot */}
                     <Line yAxisId="left" type="monotone" dataKey="weight" name="體重 (kg)" stroke="#3b82f6" strokeWidth={3} dot={{ r: 6, fill: '#ffffff', strokeWidth: 2 }} activeDot={{ r: 8, fill: '#3b82f6' }} />
-                    <Line yAxisId="left" type="monotone" dataKey="adl" name="ADL 總分" stroke="#10b981" strokeWidth={3} dot={{ r: 6, fill: '#ffffff', strokeWidth: 2 }} activeDot={{ r: 8, fill: '#10b981' }} />
                     <Line yAxisId="right" type="linear" dataKey="risk" name="AI 風險 (低/中/高)" stroke="#ef4444" strokeWidth={3} dot={{ r: 6, fill: '#ffffff', strokeWidth: 2 }} activeDot={{ r: 8, fill: '#ef4444' }} />
                   </LineChart>
                 </ResponsiveContainer>
