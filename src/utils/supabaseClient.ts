@@ -22,13 +22,14 @@ export const supabase = isSupabaseConfigured
 function createMockSupabaseClient() {
   const mockError = { message: 'Supabase 未配置' }
 
-  type MockResult = { data: null; error: { message: string } }
+  type MockResult = { data: null; error: { message: string }; status: number }
   type MockChain = {
     select: () => MockChain
     insert: () => MockChain
     update: () => MockChain
     eq: () => MockChain
     order: () => MockChain
+    maybeSingle: () => MockChain
     then: Promise<MockResult>['then']
     catch: Promise<MockResult>['catch']
   }
@@ -40,8 +41,9 @@ function createMockSupabaseClient() {
       update: () => chain(),
       eq: () => chain(),
       order: () => chain(),
-      then: (onFulfilled, onRejected) => Promise.resolve({ data: null, error: mockError }).then(onFulfilled, onRejected),
-      catch: (onRejected) => Promise.resolve({ data: null, error: mockError }).catch(onRejected),
+      maybeSingle: () => chain(),
+      then: (onFulfilled, onRejected) => Promise.resolve({ data: null, error: mockError, status: 503 }).then(onFulfilled, onRejected),
+      catch: (onRejected) => Promise.resolve({ data: null, error: mockError, status: 503 }).catch(onRejected),
     }
   }
   return {
