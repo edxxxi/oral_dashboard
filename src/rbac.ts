@@ -37,7 +37,6 @@ const roleToPermissions: Record<Role, Permission[]> = {
   ),
   nurse: perms(
     'view:all',
-    'manage:staff',
     'edit:medical_summary',
     'edit:oral_check_notes',
     'attach:upload',

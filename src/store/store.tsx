@@ -19,6 +19,7 @@ const initialState: AppState = {
 // 定義動作類型
 type Action =
   | { type: 'set_initial_data'; state: AppState }
+  | { type: 'set_assessments_local'; assessments: AssessmentRecord[] }
   | { type: 'select_resident'; id: string | null }
   | { type: 'update_resident_local'; id: string; patch: Partial<Resident> }
   | { type: 'add_resident_local'; resident: Resident }
@@ -34,6 +35,8 @@ function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'set_initial_data':
       return { ...action.state }
+    case 'set_assessments_local':
+      return { ...state, assessments: action.assessments }
     case 'select_resident':
       return { ...state, selectedResidentId: action.id }
     case 'update_resident_local':
@@ -140,40 +143,57 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           return
         }
 
-        const [resResidents, resAssessments] = await Promise.all([
-          (supabase.from('residents') as any).select('*'),
-          (supabase.from('assessment_records') as any).select('*').order('created_at', { ascending: false })
-        ])
+        const mapResidentRow = (r: any): Resident => ({
+          ...r,
+          bedNo: r.bed_no,
+          medicalSummary: r.medical_summary,
+          oralCheckNotes: r.oral_check_notes,
+          dietStatus: r.diet_status
+        })
+        const mapAssessmentRow = (a: any): AssessmentRecord => ({
+          ...a,
+          residentId: a.resident_id,
+          monthKey: a.month_key,
+          weightKg: a.weight_kg,
+          spmsqErrors: a.spmsq_errors,
+          mnaScore: a.mna_score,
+          swallowScreen: a.swallow_screen,
+          swallow30s: a.swallow_30s,
+          eat10Score: a.eat10_score,
+          chewingScore: a.chewing_score,
+          nursingData: a.nursing_data
+        } as any)
 
+        // 先載入住民資料，避免登入後主畫面卡在大筆 assessment 查詢
+        const resResidents = await (supabase.from('residents') as any).select('*')
         if (resResidents.error) throw resResidents.error
-        if (resAssessments.error) throw resAssessments.error
 
         dispatch({
           type: 'set_initial_data',
           state: {
             ...initialState,
-            residents: (resResidents.data || []).map((r: any) => ({
-              ...r,
-              bedNo: r.bed_no,
-              medicalSummary: r.medical_summary,
-              oralCheckNotes: r.oral_check_notes,
-              dietStatus: r.diet_status
-            })),
-            assessments: (resAssessments.data || []).map((a: any) => ({
-              ...a,
-              residentId: a.resident_id,
-              monthKey: a.month_key,
-              weightKg: a.weight_kg,
-              spmsqErrors: a.spmsq_errors,
-              mnaScore: a.mna_score,
-              swallowScreen: a.swallow_screen,
-              swallow30s: a.swallow_30s,
-              eat10Score: a.eat10_score,
-              chewingScore: a.chewing_score,
-              nursingData: a.nursing_data
-            } as any)),
+            residents: (resResidents.data || []).map(mapResidentRow),
+            assessments: [],
           }
         })
+
+        setLoading(false)
+
+        // 評估資料改為背景載入，載完再補進 state
+        ;(async () => {
+          const resAssessments = await (supabase.from('assessment_records') as any)
+            .select('*')
+            .order('created_at', { ascending: false })
+          if (resAssessments.error) {
+            console.warn('⚠️  載入 assessment_records 較慢或失敗:', resAssessments.error.message)
+            return
+          }
+          dispatch({
+            type: 'set_assessments_local',
+            assessments: (resAssessments.data || []).map(mapAssessmentRow),
+          })
+        })()
+        return
       } catch (error) {
         console.error('❌ 載入雲端資料失敗:', error)
         console.warn('📦 改用模擬數據進行本地測試')

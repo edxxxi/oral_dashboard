@@ -51,3 +51,39 @@ npm run dev
 
 用瀏覽器開啟該網址即可。
 
+---
+
+## 正式環境：Supabase 帳號與權限管理
+
+本專案已改為：
+- 使用 **Supabase Auth** 登入
+- 由 **主管（admin）** 在系統管理頁手動建立/停用/刪除帳號、手動設定密碼
+- 其他角色必須先由主管建立帳號後才能登入
+
+### 1) 前端環境變數
+建立 `.env`（或部署平台環境變數）：
+
+```bash
+VITE_SUPABASE_URL=你的Supabase專案URL
+VITE_SUPABASE_ANON_KEY=你的Supabase anon key
+```
+
+### 2) 建立資料表與 RLS
+到 Supabase SQL Editor 執行：
+
+`supabase/sql/001_auth_staff.sql`
+
+### 3) 部署管理帳號用的 Edge Function
+先安裝並登入 Supabase CLI，然後在專案根目錄執行：
+
+```bash
+supabase functions deploy admin-staff --no-verify-jwt=false
+```
+
+> `admin-staff` 會使用 `SUPABASE_SERVICE_ROLE_KEY` 做帳號建立/刪除/改密碼，僅允許已登入且為主管角色的人呼叫。
+
+### 4) 建立第一個主管帳號（只做一次）
+1. 在 Supabase Dashboard → Authentication → Users 手動新增第一個主管使用者（email/password）。
+2. 回到 SQL Editor，依 `001_auth_staff.sql` 內註解，把該使用者寫入 `public.staff_accounts`，角色設為 `admin`。
+
+完成後，即可用該主管登入系統並管理其他帳號。

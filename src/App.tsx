@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { RequireAuth, RequirePermission } from './auth'
+import { RequireAuth } from './auth'
 import { AppLayout } from './layout/AppLayout'
 import DashboardPage from './pages/DashboardPage'
 import SystemPage from './pages/SystemPage'
@@ -21,14 +21,7 @@ export default function App() {
         }
       >
         <Route path="/" element={<DashboardPage />} />
-        <Route
-          path="/system"
-          element={
-            <RequirePermission permission="manage:staff" fallbackTo="/">
-              <SystemPage />
-            </RequirePermission>
-          }
-        />
+        <Route path="/system" element={<SystemPage />} />
         <Route path="/residents" element={<ResidentsBasicsPage />} />
         <Route path="/assessments" element={<AssessmentsPage />} />
         <Route path="/reports" element={<ReportPage />} />
