@@ -2,8 +2,8 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useStore } from '../store/store'
 import { useAuth } from '../auth'
-import type { Feedback, StaffAccount } from '../store/types'
-import { makeId } from '../utils/ids'
+import type { Feedback } from '../store/types'
+import type { Role } from '../rbac'
 import { formatDateTime } from '../utils/date'
 
 function roleLabel(role: string) {
@@ -25,30 +25,45 @@ function roleLabel(role: string) {
 
 export default function SystemPage() {
   const { state, dispatch } = useStore()
-  const { user } = useAuth()
+  const {
+    user,
+    can: canPermission,
+    signOut,
+    staffAccounts,
+    loadingStaffAccounts,
+    adminIssueAccount,
+    adminSetActive,
+    adminSetPassword,
+    adminDeleteAccount,
+  } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const canManageStaff = canPermission('manage:staff')
 
-  const [tab, setTab] = useState<'staff' | 'feedback'>('staff')
+  const [tab, setTab] = useState<'staff' | 'feedback'>(canManageStaff ? 'staff' : 'feedback')
   const [q, setQ] = useState('')
   const [showUserMenu, setShowUserMenu] = useState(false)
 
   const [newStaffName, setNewStaffName] = useState('')
   const [newStaffEmail, setNewStaffEmail] = useState('')
-  const [newStaffRole, setNewStaffRole] = useState<StaffAccount['role']>('nurse')
+  const [newStaffRole, setNewStaffRole] = useState<Role>('nurse')
+  const [newStaffPassword, setNewStaffPassword] = useState('')
+  const [staffPasswords, setStaffPasswords] = useState<Record<string, string>>({})
+  const [staffErr, setStaffErr] = useState<string | null>(null)
+  const [staffMsg, setStaffMsg] = useState<string | null>(null)
 
   const [fbFrom, setFbFrom] = useState('')
   const [fbMessage, setFbMessage] = useState('')
 
   const staffSorted = useMemo(
-    () => [...state.staff].sort((a, b) => (a.active === b.active ? 0 : a.active ? -1 : 1)),
-    [state.staff],
+    () => [...staffAccounts].sort((a, b) => (a.active === b.active ? 0 : a.active ? -1 : 1)),
+    [staffAccounts],
   )
 
   // 登出功能
-  const handleLogout = () => {
-    localStorage.clear()
-    window.location.href = '/login'
+  const handleLogout = async () => {
+    await signOut()
+    navigate('/login', { replace: true })
   }
 
   // 導航選項
@@ -190,20 +205,22 @@ export default function SystemPage() {
       {/* 頁面主要內容 */}
       <main style={{ maxWidth: '1000px', margin: '0 auto', padding: '32px 24px' }}>
         <div style={{ marginBottom: '24px' }}>
-          <h1 style={{ fontSize: '28px', color: '#111827', margin: '0 0 20px 0' }}>系統管理</h1>
+          <h1 style={{ fontSize: '28px', color: '#111827', margin: '0 0 20px 0' }}>{canManageStaff ? '系統管理' : '系統回饋'}</h1>
           
           {/* 頁籤切換 */}
           <div style={{ display: 'flex', gap: '12px' }}>
-            <button className={tab === 'staff' ? 'btn' : 'btn btn--sub'} onClick={() => setTab('staff')} style={{ padding: '8px 16px', fontSize: '15px' }}>
-              1. 工作人員帳號管理
-            </button>
+            {canManageStaff ? (
+              <button className={tab === 'staff' ? 'btn' : 'btn btn--sub'} onClick={() => setTab('staff')} style={{ padding: '8px 16px', fontSize: '15px' }}>
+                1. 工作人員帳號管理
+              </button>
+            ) : null}
             <button className={tab === 'feedback' ? 'btn' : 'btn btn--sub'} onClick={() => setTab('feedback')} style={{ padding: '8px 16px', fontSize: '15px' }}>
-              2. 系統使用回饋（工程師）
+              {canManageStaff ? '2. 系統使用回饋（工程師）' : '系統使用回饋（工程師）'}
             </button>
           </div>
         </div>
 
-        {tab === 'staff' ? (
+        {tab === 'staff' && canManageStaff ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             <section className="card">
               <div className="card__title">新增帳號</div>
@@ -218,7 +235,7 @@ export default function SystemPage() {
                 </label>
                 <label className="field" style={{ minWidth: 200 }}>
                   <span className="label">角色</span>
-                  <select value={newStaffRole} onChange={(e) => setNewStaffRole(e.target.value as StaffAccount['role'])}>
+                  <select value={newStaffRole} onChange={(e) => setNewStaffRole(e.target.value as Role)}>
                     <option value="admin">系統管理</option>
                     <option value="nurse">護理師</option>
                     <option value="dietitian">營養師</option>
@@ -226,28 +243,55 @@ export default function SystemPage() {
                     <option value="slp">口語師</option>
                   </select>
                 </label>
+                <label className="field" style={{ minWidth: 220 }}>
+                  <span className="label">密碼（主管手動設定）</span>
+                  <input
+                    type="password"
+                    value={newStaffPassword}
+                    onChange={(e) => setNewStaffPassword(e.target.value)}
+                    placeholder="至少 6 碼"
+                  />
+                </label>
                 <button
                   className="btn"
-                  onClick={() => {
+                  onClick={async () => {
+                    setStaffErr(null)
+                    setStaffMsg(null)
                     const name = newStaffName.trim()
                     const email = newStaffEmail.trim()
-                    if (!name || !email) return
-                    dispatch({
-                      type: 'add_staff',
-                      staff: { id: makeId('staff'), name, email, role: newStaffRole, active: true },
-                    })
+                    const password = newStaffPassword.trim()
+                    if (!name || !email || !password) {
+                      setStaffErr('請完整填寫姓名、Email、密碼')
+                      return
+                    }
+                    if (password.length < 6) {
+                      setStaffErr('密碼至少 6 碼')
+                      return
+                    }
+                    try {
+                      await adminIssueAccount({ name, email, role: newStaffRole, active: true, password })
+                      setStaffMsg(`已建立帳號：${email}`)
+                    } catch (error) {
+                      const msg = error instanceof Error ? error.message : '建立帳號失敗，請檢查資料後重試'
+                      setStaffErr(`建立帳號失敗：${msg}`)
+                      return
+                    }
                     setNewStaffName('')
                     setNewStaffEmail('')
                     setNewStaffRole('nurse')
+                    setNewStaffPassword('')
                   }}
                 >
                   新增
                 </button>
               </div>
+              {staffErr ? <div style={{ marginTop: 10, color: '#b91c1c' }}>{staffErr}</div> : null}
+              {staffMsg ? <div style={{ marginTop: 10, color: '#065f46' }}>{staffMsg}</div> : null}
             </section>
 
             <section className="card">
               <div className="card__title">工作人員帳號</div>
+              {loadingStaffAccounts ? <div className="muted">帳號資料載入中…</div> : null}
               <div className="tablewrap">
                 <table className="table">
                   <thead>
@@ -256,7 +300,7 @@ export default function SystemPage() {
                       <th>角色</th>
                       <th>Email</th>
                       <th style={{ width: 120 }}>狀態</th>
-                      <th style={{ width: 120 }}></th>
+                      <th style={{ width: 330 }}>管理</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -269,9 +313,71 @@ export default function SystemPage() {
                           <span className={s.active ? 'tag tag--ok' : 'tag'}>{s.active ? '啟用' : '停用'}</span>
                         </td>
                         <td>
-                          <button className="btn btn--sub" onClick={() => dispatch({ type: 'toggle_staff', id: s.id })}>
-                            {s.active ? '停用' : '啟用'}
-                          </button>
+                          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                            <button
+                              className="btn btn--sub"
+                              onClick={async () => {
+                                setStaffErr(null)
+                                setStaffMsg(null)
+                                const ok = await adminSetActive(s.id, !s.active)
+                                if (!ok) {
+                                  setStaffErr('無法停用最後一個主管帳號')
+                                  return
+                                }
+                                setStaffMsg(`${s.email} 已${s.active ? '停用' : '啟用'}`)
+                              }}
+                            >
+                              {s.active ? '停用' : '啟用'}
+                            </button>
+                            <input
+                              type="password"
+                              placeholder="新密碼"
+                              value={staffPasswords[s.id] ?? ''}
+                              onChange={(e) =>
+                                setStaffPasswords((prev) => ({
+                                  ...prev,
+                                  [s.id]: e.target.value,
+                                }))
+                              }
+                              style={{ width: 110 }}
+                            />
+                            <button
+                              className="btn btn--sub"
+                              onClick={async () => {
+                                setStaffErr(null)
+                                setStaffMsg(null)
+                                const password = (staffPasswords[s.id] ?? '').trim()
+                                if (password.length < 6) {
+                                  setStaffErr('新密碼至少 6 碼')
+                                  return
+                                }
+                                const ok = await adminSetPassword(s.id, password)
+                                if (!ok) {
+                                  setStaffErr('設定密碼失敗')
+                                  return
+                                }
+                                setStaffPasswords((prev) => ({ ...prev, [s.id]: '' }))
+                                setStaffMsg(`已更新 ${s.email} 的密碼`)
+                              }}
+                            >
+                              設密碼
+                            </button>
+                            <button
+                              className="btn btn--sub"
+                              onClick={async () => {
+                                setStaffErr(null)
+                                setStaffMsg(null)
+                                const res = await adminDeleteAccount(s.id)
+                                if (!res.ok) {
+                                  setStaffErr(res.error)
+                                  return
+                                }
+                                setStaffMsg(`已刪除帳號：${s.email}`)
+                              }}
+                            >
+                              刪除
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
