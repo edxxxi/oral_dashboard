@@ -1,5 +1,4 @@
 import { useState, useMemo } from 'react';
-import React from 'react';
 
 interface AssessmentProps {
   onSave: (assessmentData: any) => void;
