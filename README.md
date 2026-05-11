@@ -73,6 +73,8 @@ VITE_SUPABASE_ANON_KEY=你的Supabase anon key
 
 `supabase/sql/001_auth_staff.sql`
 
+`supabase/sql/002_assessment_scales.sql`（建立評估量表題庫並匯入 EAT-10 / MNA-SF / SPMSQ / RSST 題目）
+
 ### 3) 部署管理帳號用的 Edge Function
 先安裝並登入 Supabase CLI，然後在專案根目錄執行：
 
