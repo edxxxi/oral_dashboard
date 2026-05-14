@@ -24,6 +24,7 @@
 2. **MNA-SF 簡易營養篩檢表**（營養師）
 3. **咀嚼能力篩檢**
 4. **認知功能評估**（SPMSQ 簡易精神狀態檢查）
+5. **Pataka 聲音評估**（護理人員可上傳音檔，以「聲音是否達 60 分貝 / 聲音是否明晰」做是與否勾選；任一為否即口說不良風險，既有音檔可跨人員下載）
 
 ### 分頁 D｜綜合分析報告
 - **AI 綜合風險判定**（紅黃綠燈視覺化）
@@ -74,6 +75,8 @@ VITE_SUPABASE_ANON_KEY=你的Supabase anon key
 `supabase/sql/001_auth_staff.sql`
 
 `supabase/sql/002_assessment_scales.sql`（建立評估量表題庫並匯入 EAT-10 / MNA-SF / SPMSQ / RSST 題目）
+
+`supabase/sql/003_pataka_audio.sql`（建立 Pataka 聲音儲存桶與 authenticated 讀寫政策）
 
 ### 3) 部署管理帳號用的 Edge Function
 先安裝並登入 Supabase CLI，然後在專案根目錄執行：

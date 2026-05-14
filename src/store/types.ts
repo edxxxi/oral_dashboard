@@ -2,6 +2,16 @@ export type RiskLevel = 'low' | 'medium' | 'high'
 export type DietType = 'full' | 'soft' | 'liquid'
 export type FeedingMethod = 'oral' | 'ng_tube' | 'gastrostomy'
 
+export type PatakaAssessment = {
+  db60Passed: boolean
+  db50Passed?: boolean // legacy field
+  clarityPassed: boolean
+  audioPath?: string
+  audioFileName?: string
+  uploadedAt?: string
+  uploadedBy?: string
+}
+
 export type Resident = {
   id: string
   bedNo: string
@@ -40,8 +50,19 @@ export type AssessmentRecord = {
     swallows?: number
     cough?: boolean
   }
+  eat10Score?: number
+  rsstScore?: number
+  chewingScore?: number
 
-  nursingData?: any // 新增護理評估(SPMSQ/ADL/IADL)的資料
+  nursingData?: {
+    spmsq?: {
+      errors: number
+      education: 'primary' | 'junior' | 'senior'
+      result: string
+    }
+    pataka?: PatakaAssessment
+    [key: string]: unknown
+  }
   notes?: string
 }
 

@@ -57,5 +57,11 @@ function createMockSupabaseClient() {
     functions: {
       invoke: async () => ({ data: null, error: mockError }),
     },
+    storage: {
+      from: () => ({
+        upload: async () => ({ data: null, error: mockError }),
+        createSignedUrl: async () => ({ data: null, error: mockError }),
+      }),
+    },
   }
 }

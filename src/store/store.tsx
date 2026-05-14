@@ -6,6 +6,15 @@ import { todayISO } from '../utils/date'
 import { makeMockState } from '../data/mock'
 import type { AppState, AssessmentRecord, Feedback, Resident, StaffAccount } from './types'
 
+const PATAKA_BUCKET = 'pataka-audio'
+
+type PatakaAudioUploadResult = {
+  audioPath: string
+  audioFileName: string
+  uploadedAt: string
+  uploadedBy: string
+}
+
 // 初始狀態
 const initialState: AppState = {
   selectedResidentId: null,
@@ -116,6 +125,8 @@ type Store = {
   addAssessment: (residentId: string, patch: Partial<AssessmentRecord>) => Promise<void>
   // 新增：將住民寫入雲端資料庫
   addResident: (resident: Partial<Resident>) => Promise<void>
+  uploadPatakaAudio: (residentId: string, file: File, uploadedBy: string) => Promise<PatakaAudioUploadResult>
+  getPatakaAudioDownloadUrl: (audioPath: string) => Promise<string>
 }
 
 const StoreContext = createContext<Store | null>(null)
@@ -160,6 +171,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           swallowScreen: a.swallow_screen,
           swallow30s: a.swallow_30s,
           eat10Score: a.eat10_score,
+          rsstScore: a.rsst_score ?? a.chewing_score,
           chewingScore: a.chewing_score,
           nursingData: a.nursing_data
         } as any)
@@ -246,7 +258,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       swallow_screen: patch.swallowScreen,
       swallow_30s: patch.swallow30s,
       eat10_score: (patch as any).eat10Score,
-      chewing_score: (patch as any).chewingScore,
+      rsst_score: patch.rsstScore,
+      chewing_score: patch.chewingScore ?? patch.rsstScore,
       nursing_data: (patch as any).nursingData,
       notes: patch.notes
     }
@@ -272,7 +285,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         id: data[0].id,
         residentId: data[0].resident_id,
         createdAt: data[0].created_at,
-        monthKey: data[0].month_key
+        monthKey: data[0].month_key,
+        rsstScore: data[0].rsst_score ?? data[0].chewing_score
       } as AssessmentRecord
       
       dispatch({ type: 'add_assessment_local', record: newRecord });
@@ -315,14 +329,47 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
   }, [dispatch])
 
+  const uploadPatakaAudio = useCallback(async (residentId: string, file: File, uploadedBy: string) => {
+    const fileName = file.name.trim() || 'pataka-audio'
+    const safeFileName = fileName.replace(/[^\w.-]+/g, '_')
+    const objectPath = `${residentId}/${Date.now()}-${safeFileName}`
+
+    const { error } = await (supabase.storage.from(PATAKA_BUCKET) as any).upload(objectPath, file, {
+      upsert: false,
+      contentType: file.type || undefined,
+      cacheControl: '3600',
+    })
+
+    if (error) {
+      throw new Error(`音檔上傳失敗：${error.message}`)
+    }
+
+    return {
+      audioPath: objectPath,
+      audioFileName: fileName,
+      uploadedAt: new Date().toISOString(),
+      uploadedBy,
+    }
+  }, [])
+
+  const getPatakaAudioDownloadUrl = useCallback(async (audioPath: string) => {
+    const { data, error } = await (supabase.storage.from(PATAKA_BUCKET) as any).createSignedUrl(audioPath, 60 * 10)
+    if (error || !data?.signedUrl) {
+      throw new Error(`取得下載連結失敗：${error?.message ?? '未知錯誤'}`)
+    }
+    return data.signedUrl
+  }, [])
+
   const value = useMemo(() => ({ 
     state, 
     dispatch, 
     loading, 
     updateResident, 
     addAssessment,
-    addResident
-  }), [state, loading, updateResident, addAssessment, addResident])
+    addResident,
+    uploadPatakaAudio,
+    getPatakaAudioDownloadUrl
+  }), [state, loading, updateResident, addAssessment, addResident, uploadPatakaAudio, getPatakaAudioDownloadUrl])
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
 }

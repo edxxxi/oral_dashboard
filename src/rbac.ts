@@ -15,6 +15,7 @@ export type Permission =
   | 'submit:mna'
   | 'submit:swallow_screen'
   | 'submit:swallow_30s'
+  | 'submit:pataka'
   | 'edit:doctor_note'
 
 const perms = (...p: Permission[]) => p
@@ -33,6 +34,7 @@ const roleToPermissions: Record<Role, Permission[]> = {
     'submit:mna',
     'submit:swallow_screen',
     'submit:swallow_30s',
+    'submit:pataka',
     'edit:doctor_note',
   ),
   nurse: perms(
@@ -47,6 +49,7 @@ const roleToPermissions: Record<Role, Permission[]> = {
     'submit:mna',
     'submit:swallow_screen',
     'submit:swallow_30s',
+    'submit:pataka',
     'edit:doctor_note',
   ),
   caregiver: perms('view:all', 'edit:oral_check_notes', 'attach:upload', 'submit:swallow_screen'),

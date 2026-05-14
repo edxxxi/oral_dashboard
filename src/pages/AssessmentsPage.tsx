@@ -9,29 +9,51 @@ import { MNAForm } from './forms/MNAForm'
 import { EAT10Form } from './forms/EAT10Form'
 import { RSSTForm } from './forms/ChewingForm'
 import NursingAssessments from './forms/NursingAssessments'
-import type { AssessmentRecord } from '../store/types'
+import { PatakaForm } from './forms/PatakaForm'
+import type { AssessmentRecord, PatakaAssessment } from '../store/types'
 
 export default function AssessmentsPage() {
   const resident = useSelectedResident()
-  const { state, dispatch, addAssessment } = useStore()
-  const { user } = useAuth()
+  const { state, dispatch, addAssessment, uploadPatakaAudio, getPatakaAudioDownloadUrl } = useStore()
+  const { user, can } = useAuth()
   const location = useLocation()
 
   const assessments = useResidentAssessments(resident?.id ?? null)
   const latest = assessments[0]
+  const canEditPataka = can('submit:pataka')
   
-  const [tab, setTab] = useState<'eat10' | 'mna' | 'rsst' | 'nursing'>('eat10')
+  const [tab, setTab] = useState<'eat10' | 'mna' | 'rsst' | 'nursing' | 'pataka'>('eat10')
   const [q, setQ] = useState('')
   const [showUserMenu, setShowUserMenu] = useState(false)
 
   const risk = useMemo(() => computeRiskLevel(latest), [latest])
+  const latestPataka = useMemo(() => {
+    return assessments
+      .map((record) => record.nursingData?.pataka)
+      .find((pataka): pataka is PatakaAssessment => Boolean(pataka))
+  }, [assessments])
 
   type Patch = Partial<Omit<AssessmentRecord, 'id' | 'residentId' | 'createdAt' | 'monthKey'>>
 
-  const savePatch = (patch: Patch) => {
-    if (!resident) return;
-    addAssessment(resident.id, patch);
-    alert('量表已成功儲存！');
+  const savePatch = async (patch: Patch) => {
+    if (!resident) return
+    await addAssessment(resident.id, patch)
+    alert('量表已成功儲存！')
+  }
+
+  const downloadPatakaAudio = async (audioPath: string, audioFileName?: string) => {
+    try {
+      const signedUrl = await getPatakaAudioDownloadUrl(audioPath)
+      const anchor = document.createElement('a')
+      anchor.href = signedUrl
+      anchor.download = audioFileName || 'pataka-audio'
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '下載失敗'
+      alert(message)
+    }
   }
 
   // 登出功能
@@ -223,6 +245,9 @@ export default function AssessmentsPage() {
               <button className={tab === 'nursing' ? 'btn' : 'btn btn--sub'} onClick={() => setTab('nursing')} style={{ padding: '8px 24px', fontSize: '16px', borderRadius: '20px' }}>
                 4. 認知功能評估 (SPMSQ)
               </button>
+              <button className={tab === 'pataka' ? 'btn' : 'btn btn--sub'} onClick={() => setTab('pataka')} style={{ padding: '8px 24px', fontSize: '16px', borderRadius: '20px' }}>
+                5. 聲音評估 (Pataka)
+              </button>
             </div>
 
             {/* 量表內容區塊 */}
@@ -230,13 +255,25 @@ export default function AssessmentsPage() {
               <div className="card__title" style={{ fontSize: '20px', marginBottom: '20px' }}>本次評估輸入</div>
               
               {tab === 'eat10' ? (
-                <EAT10Form defaultScore={(latest as any)?.eat10Score} onSubmit={(d) => savePatch(d)} onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }} />
+                <EAT10Form defaultScore={latest?.eat10Score} onSubmit={(d) => savePatch(d)} onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }} />
               ) : tab === 'mna' ? (
                 <MNAForm defaultScore={latest?.mnaScore} onSubmit={(d) => savePatch(d)} onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }} />
               ) : tab === 'rsst' ? (
-                <RSSTForm defaultScore={(latest as any)?.rsstScore} onSubmit={(d) => savePatch(d)} onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }} />
+                <RSSTForm defaultScore={latest?.rsstScore} onSubmit={(d) => savePatch(d)} onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }} />
+              ) : tab === 'nursing' ? (
+                <NursingAssessments onSave={(d) => savePatch({ nursingData: d, notes: d.notes })} onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }} />
               ) : (
-                <NursingAssessments onSave={(d) => savePatch({ nursingData: d, notes: d.notes } as any)} onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }} />
+                <PatakaForm
+                  defaultPataka={latestPataka}
+                  allowEdit={canEditPataka}
+                  onUploadAudio={(file) => {
+                    if (!resident) throw new Error('請先選擇住民')
+                    return uploadPatakaAudio(resident.id, file, user?.name ?? user?.email ?? 'unknown')
+                  }}
+                  onDownloadAudio={downloadPatakaAudio}
+                  onSubmit={(patch) => savePatch(patch)}
+                  onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }}
+                />
               )}
             </section>
 
@@ -252,24 +289,59 @@ export default function AssessmentsPage() {
                       <th style={{ width: 120 }}>MNA-SF 分數</th>
                       <th style={{ width: 120 }}>RSST 吞嚥次數</th>
                       <th style={{ width: 140 }}>認知功能評估</th>
+                      <th style={{ width: 220 }}>Pataka 聲音評估</th>
                       <th style={{ minWidth: 100 }}>備註</th>
                     </tr>
                   </thead>
                   <tbody>
                     {assessments.length === 0 && (
-                      <tr><td colSpan={4} style={{ textAlign: 'center', color: '#6b7280', padding: '16px' }}>尚無歷史紀錄</td></tr>
+                      <tr><td colSpan={7} style={{ textAlign: 'center', color: '#6b7280', padding: '16px' }}>尚無歷史紀錄</td></tr>
                     )}
                     {assessments.slice(0, 10).map((a) => (
                       <tr key={a.id}>
                         <td className="muted">{formatDateTime(a.createdAt)}</td>
-                        <td>{typeof (a as any).eat10Score === 'number' ? `${(a as any).eat10Score} 分` : '—'}</td>
+                        <td>{typeof a.eat10Score === 'number' ? `${a.eat10Score} 分` : '—'}</td>
                         <td>{typeof a.mnaScore === 'number' ? a.mnaScore : '—'}</td>
-                        <td>{typeof (a as any).rsstScore === 'number' ? `${(a as any).rsstScore} 次` : '—'}</td>
+                        <td>{typeof a.rsstScore === 'number' ? `${a.rsstScore} 次` : '—'}</td>
                         <td>
-                          {(a as any).nursingData ? (
+                          {a.nursingData?.spmsq ? (
                             <span style={{ fontSize: '14px', color: '#059669', backgroundColor: '#d1fae5', padding: '4px 8px', borderRadius: '12px' }}>
                               已完成
                             </span>
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+                        <td>
+                          {a.nursingData?.pataka ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              <span style={{ fontSize: '13px', color: '#111827' }}>
+                                60 分貝：{(a.nursingData.pataka.db60Passed ?? a.nursingData.pataka.db50Passed) ? '是' : '否'}｜明晰：{a.nursingData.pataka.clarityPassed ? '是' : '否'}
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: '12px',
+                                  color: (a.nursingData.pataka.db60Passed ?? a.nursingData.pataka.db50Passed) && a.nursingData.pataka.clarityPassed ? '#166534' : '#991b1b',
+                                  backgroundColor: (a.nursingData.pataka.db60Passed ?? a.nursingData.pataka.db50Passed) && a.nursingData.pataka.clarityPassed ? '#dcfce7' : '#fee2e2',
+                                  width: 'fit-content',
+                                  padding: '3px 8px',
+                                  borderRadius: '10px',
+                                }}
+                              >
+                                {(a.nursingData.pataka.db60Passed ?? a.nursingData.pataka.db50Passed) && a.nursingData.pataka.clarityPassed ? '無口說不良風險' : '口說不良風險'}
+                              </span>
+                              {a.nursingData.pataka.audioPath ? (
+                                <button
+                                  className="btn btn--sub"
+                                  style={{ padding: '4px 10px', fontSize: '12px', width: 'fit-content' }}
+                                  onClick={() => { void downloadPatakaAudio(a.nursingData?.pataka?.audioPath || '', a.nursingData?.pataka?.audioFileName) }}
+                                >
+                                  下載音檔
+                                </button>
+                              ) : (
+                                <span className="muted">無音檔</span>
+                              )}
+                            </div>
                           ) : (
                             '—'
                           )}
