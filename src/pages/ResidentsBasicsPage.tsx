@@ -212,6 +212,7 @@ export default function ResidentsBasicsPage() {
                 <span className="label" style={{ fontSize: '18px', fontWeight: 600 }}>出生年月日</span>
                 <input
                   type="date"
+                  lang="en-CA"
                   value={newDob}
                   onChange={(e) => setNewDob(e.target.value)}
                   style={{ fontSize: '18px', padding: '12px', borderRadius: '6px', border: '1px solid #d1d5db' }}

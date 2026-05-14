@@ -110,7 +110,7 @@ export default function DashboardPage() {
         
         {/* 標題 */}
         <h1 style={{ fontSize: '4.5rem', color: '#202124', marginBottom: '2.5rem', fontWeight: 500 }}>
-          口腔護理保健
+          口腔功能統合儀表板
         </h1>
 
         {/* 搜尋列 */}
