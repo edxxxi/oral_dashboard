@@ -7,6 +7,7 @@ import { makeMockState } from '../data/mock'
 import type { AppState, AssessmentRecord, Feedback, Resident, StaffAccount } from './types'
 
 const PATAKA_BUCKET = 'pataka-audio'
+const RESIDENT_ATTACHMENTS_BUCKET = 'resident-attachments'
 
 type PatakaAudioUploadResult = {
   audioPath: string
@@ -14,6 +15,8 @@ type PatakaAudioUploadResult = {
   uploadedAt: string
   uploadedBy: string
 }
+
+type ResidentAttachment = Resident['attachments'][number]
 
 // 初始狀態
 const initialState: AppState = {
@@ -32,6 +35,7 @@ type Action =
   | { type: 'select_resident'; id: string | null }
   | { type: 'update_resident_local'; id: string; patch: Partial<Resident> }
   | { type: 'add_resident_local'; resident: Resident }
+  | { type: 'delete_resident_local'; id: string }
   | { type: 'add_assessment_local'; record: AssessmentRecord }
   | { type: 'add_attachment'; residentId: string; name: string }
   | { type: 'add_staff'; staff: StaffAccount }
@@ -58,6 +62,15 @@ function reducer(state: AppState, action: Action): AppState {
         ...state,
         residents: [action.resident, ...state.residents],
       }
+    case 'delete_resident_local': {
+      const nextSelected = state.selectedResidentId === action.id ? null : state.selectedResidentId
+      return {
+        ...state,
+        selectedResidentId: nextSelected,
+        residents: state.residents.filter((r) => r.id !== action.id),
+        assessments: state.assessments.filter((a) => a.residentId !== action.id),
+      }
+    }
     case 'add_assessment_local':
       return { 
         ...state, 
@@ -124,9 +137,11 @@ type Store = {
   updateResident: (id: string, patch: Partial<Resident>) => Promise<void>
   addAssessment: (residentId: string, patch: Partial<AssessmentRecord>) => Promise<void>
   // 新增：將住民寫入雲端資料庫
-  addResident: (resident: Partial<Resident>) => Promise<void>
+  addResident: (resident: Partial<Resident>, attachmentFiles?: File[]) => Promise<void>
+  deleteResident: (residentId: string) => Promise<void>
   uploadPatakaAudio: (residentId: string, file: File, uploadedBy: string) => Promise<PatakaAudioUploadResult>
   getPatakaAudioDownloadUrl: (audioPath: string) => Promise<string>
+  getResidentAttachmentUrl: (path: string) => Promise<string>
 }
 
 const StoreContext = createContext<Store | null>(null)
@@ -134,6 +149,48 @@ const StoreContext = createContext<Store | null>(null)
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState)
   const [loading, setLoading] = useState(true)
+  const normalizeAttachments = (raw: unknown): Resident['attachments'] => {
+    if (!raw) return []
+    let value: unknown = raw
+    if (typeof raw === 'string') {
+      try {
+        value = JSON.parse(raw)
+      } catch {
+        return []
+      }
+    }
+    if (!Array.isArray(value)) return []
+
+    return value
+      .map((item) => {
+        if (typeof item === 'string') {
+          return { id: makeId('att'), name: item, addedAt: todayISO() }
+        }
+        if (item && typeof item === 'object') {
+          const record = item as Record<string, unknown>
+          const name = typeof record.name === 'string' ? record.name : null
+          if (!name) return null
+          const path =
+            typeof record.path === 'string'
+              ? record.path
+              : typeof record.storagePath === 'string'
+                ? record.storagePath
+                : undefined
+          const mimeType = typeof record.mimeType === 'string' ? record.mimeType : undefined
+          const size = typeof record.size === 'number' ? record.size : undefined
+          return {
+            id: typeof record.id === 'string' ? record.id : makeId('att'),
+            name,
+            addedAt: typeof record.addedAt === 'string' ? record.addedAt : todayISO(),
+            path,
+            mimeType,
+            size,
+          }
+        }
+        return null
+      })
+      .filter((item): item is Resident['attachments'][number] => Boolean(item))
+  }
 
   // 1. 初始化：從 Supabase 抓取所有資料，失敗時使用模擬數據
   useEffect(() => {
@@ -159,7 +216,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           bedNo: r.bed_no,
           medicalSummary: r.medical_summary,
           oralCheckNotes: r.oral_check_notes,
-          dietStatus: r.diet_status
+          dietStatus: r.diet_status,
+          attachments: normalizeAttachments((r as { attachments?: unknown }).attachments),
         })
         const mapAssessmentRow = (a: any): AssessmentRecord => ({
           ...a,
@@ -293,10 +351,37 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
   }, [dispatch])
 
+  const uploadResidentAttachments = useCallback(async (residentId: string, files: File[]) => {
+    const uploaded: ResidentAttachment[] = []
+    for (const file of files) {
+      const fileName = file.name.trim() || 'resident-attachment'
+      const safeFileName = fileName.replace(/[^\w.-]+/g, '_')
+      const objectPath = `${residentId}/${Date.now()}-${safeFileName}`
+      const { error } = await (supabase.storage.from(RESIDENT_ATTACHMENTS_BUCKET) as any).upload(objectPath, file, {
+        upsert: false,
+        contentType: file.type || undefined,
+        cacheControl: '3600',
+      })
+      if (error) {
+        throw new Error(`附件上傳失敗：${error.message}`)
+      }
+      uploaded.push({
+        id: makeId('att'),
+        name: fileName,
+        addedAt: todayISO(),
+        path: objectPath,
+        mimeType: file.type || undefined,
+        size: file.size,
+      })
+    }
+    return uploaded
+  }, [])
+
   // 4. 新增住民並同步到雲端
-  const addResident = useCallback(async (resident: Partial<Resident>) => {
+  const addResident = useCallback(async (resident: Partial<Resident>, attachmentFiles: File[] = []) => {
     // 準備要傳給資料庫的格式（將小駝峰命名轉回資料庫底線命名）
     const dbRecord: any = { ...resident };
+    const fallbackAttachments = resident.attachments
     if (resident.bedNo) dbRecord.bed_no = resident.bedNo;
     if (resident.medicalSummary) dbRecord.medical_summary = resident.medicalSummary;
     if (resident.oralCheckNotes) dbRecord.oral_check_notes = resident.oralCheckNotes;
@@ -307,7 +392,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     delete dbRecord.medicalSummary;
     delete dbRecord.oralCheckNotes;
     delete dbRecord.dietStatus;
+    delete dbRecord.attachments;
     delete dbRecord.id; // 確保由 Supabase 資料庫自動產生 ID (UUID/遞增 ID)
+    if (attachmentFiles.length === 0 && Array.isArray(fallbackAttachments) && fallbackAttachments.length > 0) {
+      dbRecord.attachments = fallbackAttachments
+    }
 
     const { data, error } = await (supabase.from('residents') as any)
       .insert([dbRecord])
@@ -316,17 +405,61 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     if (error) {
       alert('新增住民失敗: ' + error.message);
       throw error;
-    } else if (data && data[0]) {
-      // 將資料庫回傳的結果（含資料庫產生的真實 ID）轉回前端格式
-      const newResident: Resident = {
-        ...data[0],
-        bedNo: data[0].bed_no,
-        medicalSummary: data[0].medical_summary,
-        oralCheckNotes: data[0].oral_check_notes,
-        dietStatus: data[0].diet_status
-      } as Resident;
-      dispatch({ type: 'add_resident_local', resident: newResident });
     }
+    if (!data || !data[0]) return
+
+    let uploadedAttachments: ResidentAttachment[] = []
+    if (attachmentFiles.length > 0) {
+      try {
+        uploadedAttachments = await uploadResidentAttachments(data[0].id, attachmentFiles)
+        const { error: updateError } = await (supabase.from('residents') as any)
+          .update({ attachments: uploadedAttachments })
+          .eq('id', data[0].id)
+        if (updateError) {
+          alert('更新附件失敗: ' + updateError.message)
+        }
+      } catch (uploadError) {
+        const detail = uploadError instanceof Error ? uploadError.message : '附件上傳失敗'
+        alert(detail)
+      }
+    }
+
+    // 將資料庫回傳的結果（含資料庫產生的真實 ID）轉回前端格式
+    const normalizedAttachments = normalizeAttachments(
+      uploadedAttachments.length > 0
+        ? uploadedAttachments
+        : (data[0] as { attachments?: unknown }).attachments ?? resident.attachments ?? []
+    )
+    const newResident: Resident = {
+      ...data[0],
+      bedNo: data[0].bed_no,
+      medicalSummary: data[0].medical_summary,
+      oralCheckNotes: data[0].oral_check_notes,
+      dietStatus: data[0].diet_status,
+      attachments: normalizedAttachments,
+    } as Resident;
+    dispatch({ type: 'add_resident_local', resident: newResident });
+  }, [dispatch, uploadResidentAttachments])
+
+  const deleteResident = useCallback(async (residentId: string) => {
+    const { error: assessmentsError } = await (supabase.from('assessment_records') as any)
+      .delete()
+      .eq('resident_id', residentId)
+    if (assessmentsError) {
+      alert('刪除住民評估紀錄失敗: ' + assessmentsError.message)
+      return
+    }
+
+    const { error } = await (supabase.from('residents') as any)
+      .delete()
+      .eq('id', residentId)
+
+    if (error) {
+      alert('刪除住民失敗: ' + error.message)
+      return
+    }
+
+    dispatch({ type: 'delete_resident_local', id: residentId })
   }, [dispatch])
 
   const uploadPatakaAudio = useCallback(async (residentId: string, file: File, uploadedBy: string) => {
@@ -360,6 +493,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     return data.signedUrl
   }, [])
 
+  const getResidentAttachmentUrl = useCallback(async (path: string) => {
+    const { data, error } = await (supabase.storage.from(RESIDENT_ATTACHMENTS_BUCKET) as any).createSignedUrl(path, 60 * 10)
+    if (error || !data?.signedUrl) {
+      throw new Error(`取得附件連結失敗：${error?.message ?? '未知錯誤'}`)
+    }
+    return data.signedUrl
+  }, [])
+
   const value = useMemo(() => ({ 
     state, 
     dispatch, 
@@ -367,9 +508,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     updateResident, 
     addAssessment,
     addResident,
+    deleteResident,
     uploadPatakaAudio,
-    getPatakaAudioDownloadUrl
-  }), [state, loading, updateResident, addAssessment, addResident, uploadPatakaAudio, getPatakaAudioDownloadUrl])
+    getPatakaAudioDownloadUrl,
+    getResidentAttachmentUrl
+  }), [state, loading, updateResident, addAssessment, addResident, deleteResident, uploadPatakaAudio, getPatakaAudioDownloadUrl, getResidentAttachmentUrl])
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
 }

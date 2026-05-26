@@ -78,6 +78,8 @@ VITE_SUPABASE_ANON_KEY=你的Supabase anon key
 
 `supabase/sql/003_pataka_audio.sql`（建立 Pataka 聲音儲存桶與 authenticated 讀寫政策）
 
+`supabase/sql/004_resident_attachments.sql`（建立住民附件儲存桶與 authenticated 讀寫政策）
+
 ### 3) 部署管理帳號用的 Edge Function
 先安裝並登入 Supabase CLI，然後在專案根目錄執行：
 

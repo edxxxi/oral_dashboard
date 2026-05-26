@@ -27,6 +27,7 @@ function createMockSupabaseClient() {
     select: () => MockChain
     insert: () => MockChain
     update: () => MockChain
+    delete: () => MockChain
     eq: () => MockChain
     order: () => MockChain
     maybeSingle: () => MockChain
@@ -39,6 +40,7 @@ function createMockSupabaseClient() {
       select: () => chain(),
       insert: () => chain(),
       update: () => chain(),
+      delete: () => chain(),
       eq: () => chain(),
       order: () => chain(),
       maybeSingle: () => chain(),

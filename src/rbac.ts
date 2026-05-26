@@ -5,6 +5,7 @@ export type Role = StaffAccount['role']
 export type Permission =
   | 'view:all'
   | 'manage:staff'
+  | 'delete:resident'
   | 'edit:medical_summary'
   | 'edit:oral_check_notes'
   | 'attach:upload'
@@ -24,6 +25,7 @@ const roleToPermissions: Record<Role, Permission[]> = {
   admin: perms(
     'view:all',
     'manage:staff',
+    'delete:resident',
     'edit:medical_summary',
     'edit:oral_check_notes',
     'attach:upload',

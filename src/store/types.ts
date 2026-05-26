@@ -22,7 +22,14 @@ export type Resident = {
   photoUrl?: string
   medicalSummary: string
   oralCheckNotes: string
-  attachments: { id: string; name: string; addedAt: string }[]
+  attachments: {
+    id: string
+    name: string
+    addedAt: string
+    path?: string
+    mimeType?: string
+    size?: number
+  }[]
   dietStatus: {
     feedingMethod: FeedingMethod
     dietType: DietType

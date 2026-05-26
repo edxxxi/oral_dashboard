@@ -4,10 +4,13 @@ import { useSelectedResident, useStore } from '../store/store'
 import { useAuth } from '../auth'
 import { formatDob } from '../utils/date'
 
+const isImageAttachment = (name: string, mimeType?: string) =>
+  Boolean(mimeType?.startsWith('image/')) || Boolean(name.toLowerCase().match(/\.(jpg|jpeg|png)$/))
+
 export default function ResidentsBasicsPage() {
   const resident = useSelectedResident()
-  const { dispatch, state, addResident } = useStore()
-  const { user } = useAuth()
+  const { dispatch, state, addResident, deleteResident, getResidentAttachmentUrl } = useStore()
+  const { user, can } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -18,12 +21,30 @@ export default function ResidentsBasicsPage() {
   const [newName, setNewName] = useState('')
   const [newDob, setNewDob] = useState('')
   const [newBedNo, setNewBedNo] = useState('')
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [medicalFiles, setMedicalFiles] = useState<File[]>([])
 
   const [prevResidentId, setPrevResidentId] = useState<string | undefined>(undefined)
+  const canDeleteResident = can('delete:resident')
+
+  const handleOpenAttachment = async (attachment: { name: string; path?: string }) => {
+    if (!attachment.path) {
+      alert('此附件尚未上傳，無法檢視')
+      return
+    }
+    try {
+      const url = await getResidentAttachmentUrl(attachment.path)
+      window.open(url, '_blank', 'noopener,noreferrer')
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : '取得附件連結失敗'
+      alert(detail)
+    }
+  }
 
   if (resident?.id !== prevResidentId) {
     setPrevResidentId(resident?.id)
   }
+
 
   // 登出功能
   const handleLogout = () => {
@@ -53,6 +74,8 @@ export default function ResidentsBasicsPage() {
       navigate('/residents')
     }
   }
+
+  const photoAttachment = resident?.attachments.find((a) => isImageAttachment(a.name, a.mimeType))
 
   return (
     <div style={{
@@ -228,7 +251,12 @@ export default function ResidentsBasicsPage() {
                     💡 提示：照片檔案僅限 <strong>JPG</strong> 或 <strong>PNG</strong> 格式。
                   </p>
                 </div>
-                <input type="file" accept=".jpg,.jpeg,.png" style={{ fontSize: '18px', cursor: 'pointer' }} />
+                <input
+                  type="file"
+                  accept=".jpg,.jpeg,.png"
+                  style={{ fontSize: '18px', cursor: 'pointer' }}
+                  onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)}
+                />
               </label>
 
               <label className="field" style={{ marginTop: '12px' }}>
@@ -238,7 +266,13 @@ export default function ResidentsBasicsPage() {
                     💡 提示：病歷與檢查表等資料，僅限上傳 <strong>PDF</strong> 格式。
                   </p>
                 </div>
-                <input type="file" accept=".pdf" multiple style={{ fontSize: '18px', cursor: 'pointer' }} />
+                <input
+                  type="file"
+                  accept=".pdf"
+                  multiple
+                  style={{ fontSize: '18px', cursor: 'pointer' }}
+                  onChange={(e) => setMedicalFiles(Array.from(e.target.files ?? []))}
+                />
               </label>
 
               <button
@@ -255,15 +289,20 @@ export default function ResidentsBasicsPage() {
 
                   // 呼叫新增方法
                   try {
+                    const attachmentFiles = [
+                      ...(photoFile ? [photoFile] : []),
+                      ...medicalFiles,
+                    ]
+
                     await addResident({
                       bedNo: newBedNo.trim(),
                       name: newName.trim(),
                       age, 
                       dob: newDob || undefined,
-                      attachments: [], 
                       dietStatus: { feedingMethod: 'oral', dietType: 'full', slpNotes: '', dietitianNotes: '' }
-                    });
+                    }, attachmentFiles);
                     setNewName(''); setNewDob(''); setNewBedNo('');
+                    setPhotoFile(null); setMedicalFiles([]);
                     setView('list');
                   } catch (err) {
                     // 錯誤已由 addResident 顯示，表單保持開啟讓使用者重試
@@ -314,10 +353,17 @@ export default function ResidentsBasicsPage() {
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     flexShrink: 0
                   }}>
-                    {resident.attachments.some(a => a.name.toLowerCase().match(/\.(jpg|jpeg|png)$/)) 
-                      ? <div style={{ fontSize: '14px', color: '#6b7280', textAlign: 'center', padding: '8px' }}>[已有照片記錄]</div>
-                      : <span style={{ fontSize: '64px' }}>👤</span>
-                    }
+                    {photoAttachment ? (
+                      <button
+                        className="btn btn--sub"
+                        style={{ padding: '6px 10px', fontSize: '12px' }}
+                        onClick={() => handleOpenAttachment(photoAttachment)}
+                      >
+                        檢視照片
+                      </button>
+                    ) : (
+                      <span style={{ fontSize: '64px' }}>👤</span>
+                    )}
                   </div>
                 </div>
 
@@ -330,11 +376,19 @@ export default function ResidentsBasicsPage() {
                   {resident.attachments.length > 0 ? (
                     <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
                       {resident.attachments.map(a => {
-                        const isImage = a.name.toLowerCase().match(/\.(jpg|jpeg|png)$/);
+                        const isImage = isImageAttachment(a.name, a.mimeType)
                         return (
-                          <div key={a.id} style={{ padding: '16px', fontSize: '16px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center' }}>
-                            <span style={{ marginRight: '12px', fontSize: '24px' }}>{isImage ? '🖼️' : '📄'}</span> 
+                          <div key={a.id} style={{ padding: '16px', fontSize: '16px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <span style={{ fontSize: '24px' }}>{isImage ? '🖼️' : '📄'}</span> 
                             <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#374151', fontWeight: 500 }}>{a.name}</span>
+                            <button
+                              className="btn btn--sub"
+                              style={{ padding: '4px 10px', fontSize: '12px' }}
+                              onClick={() => handleOpenAttachment(a)}
+                              disabled={!a.path}
+                            >
+                              檢視
+                            </button>
                           </div>
                         )
                       })}
@@ -367,17 +421,32 @@ export default function ResidentsBasicsPage() {
                       <td>{r.age} 歲</td>
                       <td>{r.attachments.length > 0 ? `${r.attachments.length} 份` : '無'}</td>
                       <td>
-                        <button 
-                          className={resident?.id === r.id ? "btn" : "btn btn--sub"}
-                          style={{ padding: '6px 12px', fontSize: '14px' }}
-                          onClick={() => {
-                            dispatch({ type: 'select_resident', id: r.id })
-                            // 點擊後平滑滾動回上方一點，以查看詳細資訊卡片
-                            window.scrollTo({ top: 400, behavior: 'smooth' })
-                          }}
-                        >
-                          {resident?.id === r.id ? '目前檢視' : '檢視資料'}
-                        </button>
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                          <button 
+                            className={resident?.id === r.id ? "btn" : "btn btn--sub"}
+                            style={{ padding: '6px 12px', fontSize: '14px' }}
+                            onClick={() => {
+                              dispatch({ type: 'select_resident', id: r.id })
+                              // 點擊後平滑滾動回上方一點，以查看詳細資訊卡片
+                              window.scrollTo({ top: 400, behavior: 'smooth' })
+                            }}
+                          >
+                            {resident?.id === r.id ? '目前檢視' : '檢視資料'}
+                          </button>
+                          {canDeleteResident && (
+                            <button
+                              className="btn btn--sub"
+                              style={{ padding: '6px 12px', fontSize: '14px', color: '#b91c1c', borderColor: '#fecaca', backgroundColor: '#fef2f2' }}
+                              onClick={async () => {
+                                const ok = window.confirm(`確定要刪除「${r.bedNo} ${r.name}」住民紀錄？此動作無法復原。`)
+                                if (!ok) return
+                                await deleteResident(r.id)
+                              }}
+                            >
+                              刪除
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
