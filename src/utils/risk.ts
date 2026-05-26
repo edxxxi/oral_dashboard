@@ -11,6 +11,17 @@ export function riskLabel(level: RiskLevel) {
   }
 }
 
+export function riskLevelText(level: RiskLevel) {
+  switch (level) {
+    case 'high':
+      return '高風險'
+    case 'medium':
+      return '中風險'
+    case 'low':
+      return '低風險'
+  }
+}
+
 export function computeRiskLevel(a?: AssessmentRecord): RiskLevel {
   if (!a) return 'medium'
   let score = 0

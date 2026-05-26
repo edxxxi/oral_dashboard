@@ -1,11 +1,13 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth'
 import { useStore } from '../store/store'
+import { computeRiskLevel } from '../utils/risk'
 
 export default function DashboardPage() {
   const { user } = useAuth()
   const { state, dispatch } = useStore()
+  const { residents, assessments } = state
   const navigate = useNavigate()
   const [q, setQ] = useState('')
   const [showUserMenu, setShowUserMenu] = useState(false)
@@ -25,10 +27,33 @@ export default function DashboardPage() {
   ]
 
   // 根據搜尋框輸入的字串，篩選出符合的住民（床號或姓名任一符合即可）
-  const searchResults = q.trim() === '' ? [] : state.residents.filter((r) =>
+  const searchResults = q.trim() === '' ? [] : residents.filter((r) =>
     r.bedNo.toLowerCase().includes(q.toLowerCase()) ||
     r.name.toLowerCase().includes(q.toLowerCase())
   )
+
+  const riskCounts = useMemo(() => {
+    const latestByResident = new Map<string, (typeof assessments)[number]>()
+    for (const assessment of assessments) {
+      const existing = latestByResident.get(assessment.residentId)
+      if (!existing || assessment.createdAt > existing.createdAt) {
+        latestByResident.set(assessment.residentId, assessment)
+      }
+    }
+
+    let red = 0
+    let yellow = 0
+    let green = 0
+
+    for (const resident of residents) {
+      const risk = computeRiskLevel(latestByResident.get(resident.id))
+      if (risk === 'high') red += 1
+      else if (risk === 'medium') yellow += 1
+      else green += 1
+    }
+
+    return { red, yellow, green }
+  }, [assessments, residents])
 
   const handleSearchEnter = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && searchResults.length > 0) {
@@ -190,6 +215,21 @@ export default function DashboardPage() {
               <span style={{ fontSize: '18px', fontWeight: 500 }}>{sc.name}</span>
             </Link>
           ))}
+        </div>
+        <div style={{
+          marginTop: '24px',
+          fontSize: '18px',
+          fontWeight: 600,
+          color: '#374151',
+          display: 'flex',
+          gap: '16px',
+          flexWrap: 'wrap',
+          justifyContent: 'center'
+        }}>
+          <span>住民人數：{residents.length}</span>
+          <span style={{ color: '#b91c1c' }}>紅燈：{riskCounts.red}</span>
+          <span style={{ color: '#b45309' }}>黃燈：{riskCounts.yellow}</span>
+          <span style={{ color: '#15803d' }}>綠燈：{riskCounts.green}</span>
         </div>
       </div>
     </div>

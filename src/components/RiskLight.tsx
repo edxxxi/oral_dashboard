@@ -1,6 +1,6 @@
 import type { RiskLevel } from '../store/types'
 
-export function RiskLight({ level }: { level: RiskLevel }) {
+export function RiskLight({ level, showLabel = true }: { level: RiskLevel; showLabel?: boolean }) {
   const color =
     level === 'high' ? '#ef4444' : level === 'medium' ? '#f59e0b' : '#22c55e'
   const label = level === 'high' ? '紅' : level === 'medium' ? '黃' : '綠'
@@ -11,7 +11,7 @@ export function RiskLight({ level }: { level: RiskLevel }) {
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: 8,
+        gap: showLabel ? 8 : 0,
         fontWeight: 600,
       }}
     >
@@ -24,7 +24,7 @@ export function RiskLight({ level }: { level: RiskLevel }) {
           boxShadow: `0 0 0 3px ${color}22`,
         }}
       />
-      {label}
+      {showLabel ? label : null}
     </span>
   )
 }

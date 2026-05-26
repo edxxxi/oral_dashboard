@@ -74,16 +74,16 @@ export default function NursingAssessments({ onSave, onSwitchResident }: Assessm
       
       {/* SPMSQ 區塊 */}
       <div style={{ backgroundColor: '#ffffff', padding: '32px', borderRadius: '16px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', border: '2px solid #f3f4f6' }}>
-        <h2 style={{ fontSize: '31px', fontWeight: 700, color: '#1f2937', marginBottom: '24px', borderBottom: '2px solid #e0e7ff', paddingBottom: '16px', marginTop: 0 }}>
+        <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#1f2937', marginBottom: '24px', borderBottom: '2px solid #e0e7ff', paddingBottom: '16px', marginTop: 0 }}>
           簡易精神狀態檢查量表 (SPMSQ)
         </h2>
         
         <div style={{ marginBottom: '32px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <span style={{ fontWeight: 600, color: '#374151', fontSize: '26px' }}>個案教育程度：</span>
+          <span style={{ fontWeight: 600, color: '#374151', fontSize: '18px' }}>個案教育程度：</span>
           <select 
             value={education} 
             onChange={(e: any) => setEducation(e.target.value)}
-            style={{ border: '1px solid #d1d5db', borderRadius: '12px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', fontSize: '26px', padding: '12px', outline: 'none', cursor: 'pointer' }}
+            style={{ border: '1px solid #d1d5db', borderRadius: '12px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', fontSize: '18px', padding: '12px', outline: 'none', cursor: 'pointer' }}
           >
             <option value="primary">小學</option>
             <option value="junior">一般 (國中)</option>
@@ -91,7 +91,7 @@ export default function NursingAssessments({ onSave, onSwitchResident }: Assessm
           </select>
         </div>
 
-        <p style={{ fontSize: '26px', color: '#6b7280', marginBottom: '32px', marginTop: 0 }}>
+        <p style={{ fontSize: '18px', color: '#6b7280', marginBottom: '32px', marginTop: 0 }}>
           請詢問個案以下問題，若<span style={{ color: '#ef4444', fontWeight: 700 }}>答錯</span>請勾選：
         </p>
         
@@ -114,17 +114,17 @@ export default function NursingAssessments({ onSave, onSwitchResident }: Assessm
                   checked={isError}
                   onChange={() => handleSpmsqToggle(idx)}
                 />
-                <span style={{ marginLeft: '16px', fontSize: '26px', color: '#374151', lineHeight: 1.6 }}>{q}</span>
+                <span style={{ marginLeft: '16px', fontSize: '18px', color: '#374151', lineHeight: 1.6 }}>{q}</span>
               </label>
             )
           })}
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#eef2ff', padding: '24px', borderRadius: '16px', flexWrap: 'wrap', gap: '16px' }}>
-          <div style={{ color: '#312e81', fontWeight: 500, fontSize: '31px' }}>
-            錯誤題數：<span style={{ fontSize: '44px', fontWeight: 700, marginLeft: '16px' }}>{spmsqErrors.length}</span> 題
+          <div style={{ color: '#312e81', fontWeight: 500, fontSize: '22px' }}>
+            錯誤題數：<span style={{ fontSize: '28px', fontWeight: 700, marginLeft: '16px' }}>{spmsqErrors.length}</span> 題
           </div>
-          <div style={{ padding: '16px 32px', borderRadius: '9999px', fontWeight: 700, fontSize: '31px', ...spmsqResult.styles }}>
+          <div style={{ padding: '16px 32px', borderRadius: '9999px', fontWeight: 700, fontSize: '22px', ...spmsqResult.styles }}>
             判定結果：{spmsqResult.label}
           </div>
         </div>
@@ -132,13 +132,13 @@ export default function NursingAssessments({ onSave, onSwitchResident }: Assessm
 
       {/* 備註區塊 */}
       <div style={{ backgroundColor: '#ffffff', padding: '32px', borderRadius: '16px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', border: '2px solid #f3f4f6' }}>
-        <h2 style={{ fontSize: '31px', fontWeight: 700, color: '#1f2937', marginBottom: '24px', borderBottom: '2px solid #e0e7ff', paddingBottom: '16px', marginTop: 0 }}>
+        <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#1f2937', marginBottom: '24px', borderBottom: '2px solid #e0e7ff', paddingBottom: '16px', marginTop: 0 }}>
           評估備註
         </h2>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          style={{ width: '100%', border: '2px solid #d1d5db', borderRadius: '12px', padding: '16px', fontSize: '26px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+          style={{ width: '100%', border: '2px solid #d1d5db', borderRadius: '12px', padding: '16px', fontSize: '18px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
           rows={4}
           placeholder="請輸入本次評估的相關備註事項..."
         />
@@ -147,14 +147,14 @@ export default function NursingAssessments({ onSave, onSwitchResident }: Assessm
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px', paddingTop: '32px', borderTop: '2px solid #d1d5db' }}>
         <button 
           onClick={handleSave}
-          style={{ backgroundColor: '#4f46e5', color: '#ffffff', fontWeight: 700, padding: '16px 40px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', fontSize: '31px', cursor: 'pointer', border: 'none' }}
+          style={{ backgroundColor: '#4f46e5', color: '#ffffff', fontWeight: 700, padding: '16px 40px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', fontSize: '18px', cursor: 'pointer', border: 'none' }}
         >
           儲存認知功能評估紀錄
         </button>
         {onSwitchResident && (
           <button 
             onClick={onSwitchResident}
-            style={{ backgroundColor: '#ffffff', color: '#4b5563', fontWeight: 700, padding: '16px 32px', borderRadius: '12px', border: '2px solid #d1d5db', fontSize: '31px', cursor: 'pointer' }}
+            style={{ backgroundColor: '#ffffff', color: '#4b5563', fontWeight: 700, padding: '16px 32px', borderRadius: '12px', border: '2px solid #d1d5db', fontSize: '18px', cursor: 'pointer' }}
           >
             🔄 切換住民
           </button>

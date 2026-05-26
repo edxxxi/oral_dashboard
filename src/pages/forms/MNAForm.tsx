@@ -70,7 +70,7 @@ export function MNAForm({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <div style={{ backgroundColor: '#eff6ff', padding: '16px', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
-        <p style={{ margin: 0, color: '#1e3a8a', fontSize: '28px', fontWeight: 500, lineHeight: 1.6 }}>
+        <p style={{ margin: 0, color: '#1e3a8a', fontSize: '18px', fontWeight: 500, lineHeight: 1.6 }}>
           💡 說明：簡易營養篩檢表 (MNA-SF)。滿分 14 分。
           <br />
           若總分 <strong>≦ 11 分</strong>，即「可能」有營養不良風險。
@@ -80,10 +80,10 @@ export function MNAForm({
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         {questions.map((q, i) => (
           <div key={i} style={{ padding: '24px', backgroundColor: '#f9fafb', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
-            <p style={{ margin: '0 0 20px 0', fontSize: '32px', fontWeight: 600, color: '#111827' }}>{q.title}</p>
+            <p style={{ margin: '0 0 20px 0', fontSize: '20px', fontWeight: 600, color: '#111827' }}>{q.title}</p>
             <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
               {q.options.map((opt) => (
-                <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: disabled ? 'not-allowed' : 'pointer', fontSize: '28px' }}>
+                <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: disabled ? 'not-allowed' : 'pointer', fontSize: '18px' }}>
                   <input
                     type="radio"
                     name={`mna-q${i}`}
@@ -111,16 +111,16 @@ export function MNAForm({
         backgroundColor: totalScore <= 11 ? '#fef2f2' : '#f0fdf4', 
         borderRadius: '8px', border: `2px solid ${totalScore <= 11 ? '#fecaca' : '#bbf7d0'}` 
       }}>
-        <div style={{ fontSize: '40px', fontWeight: 600, color: totalScore <= 11 ? '#991b1b' : '#166534', display: 'flex', alignItems: 'center' }}>
+        <div style={{ fontSize: '24px', fontWeight: 600, color: totalScore <= 11 ? '#991b1b' : '#166534', display: 'flex', alignItems: 'center' }}>
           總分：{totalScore} 分
-          {totalScore <= 11 && <span style={{ marginLeft: '24px', fontSize: '28px', color: '#ef4444', backgroundColor: '#fee2e2', padding: '8px 16px', borderRadius: '20px' }}>⚠️ 具營養不良風險</span>}
+          {totalScore <= 11 && <span style={{ marginLeft: '24px', fontSize: '16px', color: '#ef4444', backgroundColor: '#fee2e2', padding: '8px 16px', borderRadius: '20px' }}>⚠️ 具營養不良風險</span>}
         </div>
         <div style={{ display: 'flex', gap: '16px' }}>
-          <button className="btn" disabled={disabled} style={{ padding: '16px 40px', fontSize: '32px' }} onClick={() => onSubmit({ mnaScore: totalScore })}>
+          <button className="btn" disabled={disabled} style={{ padding: '16px 40px', fontSize: '18px' }} onClick={() => onSubmit({ mnaScore: totalScore })}>
             儲存評估
           </button>
           {onSwitchResident && (
-            <button className="btn btn--sub" style={{ padding: '16px 24px', fontSize: '32px', backgroundColor: '#ffffff', border: '2px solid #d1d5db', color: '#4b5563' }} onClick={onSwitchResident}>
+            <button className="btn btn--sub" style={{ padding: '16px 24px', fontSize: '18px', backgroundColor: '#ffffff', border: '2px solid #d1d5db', color: '#4b5563' }} onClick={onSwitchResident}>
               🔄 切換住民
             </button>
           )}

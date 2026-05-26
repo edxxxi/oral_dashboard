@@ -77,7 +77,7 @@ export function PatakaForm({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <div style={{ backgroundColor: '#eff6ff', padding: '16px', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
-        <p style={{ margin: 0, color: '#1e3a8a', fontSize: '26px', fontWeight: 500, lineHeight: 1.6 }}>
+        <p style={{ margin: 0, color: '#1e3a8a', fontSize: '18px', fontWeight: 500, lineHeight: 1.6 }}>
           💡 說明：Pataka 聲音評估請以「是 / 否」勾選。
           <br />
           1. 聲音是否達 60 分貝
@@ -95,14 +95,14 @@ export function PatakaForm({
       )}
 
       <div style={{ padding: '24px', backgroundColor: '#f9fafb', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: '24px', color: '#111827' }}>聲音檔案</h3>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: '20px', color: '#111827' }}>聲音檔案</h3>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           <input
             type="file"
             accept="audio/*"
             disabled={!allowEdit || saving}
             onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
-            style={{ fontSize: '18px' }}
+            style={{ fontSize: '16px' }}
           />
           {audioMeta.audioPath && (
             <button className="btn btn--sub" type="button" disabled={downloading} onClick={handleDownload}>
@@ -114,8 +114,8 @@ export function PatakaForm({
       </div>
 
       <div style={{ padding: '24px', backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
-        <h3 style={{ margin: '0 0 12px 0', fontSize: '22px', color: '#111827' }}>聲音評估（是 / 否）</h3>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '22px' }}>
+        <h3 style={{ margin: '0 0 12px 0', fontSize: '20px', color: '#111827' }}>聲音評估（是 / 否）</h3>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '18px' }}>
           <thead>
             <tr>
               <th style={{ textAlign: 'left', padding: '10px', borderBottom: '1px solid #e5e7eb' }}>題目</th>
@@ -180,7 +180,7 @@ export function PatakaForm({
             backgroundColor: hasVoiceRisk ? '#fef2f2' : '#f0fdf4',
             color: hasVoiceRisk ? '#991b1b' : '#166534',
             border: `1px solid ${hasVoiceRisk ? '#fecaca' : '#bbf7d0'}`,
-            fontSize: '18px',
+            fontSize: '16px',
             fontWeight: 600,
           }}
         >
@@ -189,14 +189,14 @@ export function PatakaForm({
       </div>
 
       <div style={{ padding: '24px', backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
-        <h3 style={{ margin: '0 0 12px 0', fontSize: '22px', color: '#111827' }}>備註</h3>
+        <h3 style={{ margin: '0 0 12px 0', fontSize: '20px', color: '#111827' }}>備註</h3>
         <textarea
           value={notes}
           disabled={!allowEdit || saving}
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
           placeholder="可填寫檢測時狀況、操作說明等"
-          style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '10px', padding: '12px', boxSizing: 'border-box', fontFamily: 'inherit', fontSize: '18px' }}
+          style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '10px', padding: '12px', boxSizing: 'border-box', fontFamily: 'inherit', fontSize: '16px' }}
         />
       </div>
 

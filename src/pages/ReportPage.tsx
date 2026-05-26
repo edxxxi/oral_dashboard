@@ -4,7 +4,7 @@ import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianG
 import { RiskLight } from '../components/RiskLight'
 import { useResidentAssessments, useSelectedResident, useStore } from '../store/store'
 import { useAuth } from '../auth'
-import { dietLabel, computeRiskLevel, recommendDiet, riskLabel } from '../utils/risk'
+import { dietLabel, computeRiskLevel, recommendDiet, riskLevelText } from '../utils/risk'
 import { formatDateTime } from '../utils/date'
 
 export default function ReportPage() {
@@ -17,7 +17,7 @@ export default function ReportPage() {
   const latest = assessments[0]
 
   const risk = useMemo(() => computeRiskLevel(latest), [latest])
-  const riskText = riskLabel(risk)
+  const riskText = riskLevelText(risk)
   const recommended = useMemo(() => dietLabel(recommendDiet(risk)), [risk])
 
   const dietDescription = useMemo(() => {
@@ -193,7 +193,7 @@ export default function ReportPage() {
               <section style={{ backgroundColor: '#ffffff', padding: '32px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
                 <div style={{ fontSize: '18px', fontWeight: 600, color: '#6b7280', marginBottom: '16px' }}>AI 綜合風險判定</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <div style={{ transform: 'scale(1.5)' }}><RiskLight level={risk} /></div>
+                  <div style={{ transform: 'scale(1.5)' }}><RiskLight level={risk} showLabel={false} /></div>
                   <div style={{ fontSize: '36px', fontWeight: 800, color: risk === 'high' ? '#b91c1c' : risk === 'medium' ? '#b45309' : '#15803d' }}>
                     {riskText}
                   </div>

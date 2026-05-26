@@ -29,7 +29,7 @@ export function EAT10Form({ onSubmit, onSwitchResident }: { defaultScore?: numbe
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <div style={{ backgroundColor: '#eff6ff', padding: '16px', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
-        <p style={{ margin: 0, color: '#1e3a8a', fontSize: '28px', fontWeight: 500, lineHeight: 1.6 }}>
+        <p style={{ margin: 0, color: '#1e3a8a', fontSize: '18px', fontWeight: 500, lineHeight: 1.6 }}>
           💡 說明：請詢問病人過去 <strong>3 個月內</strong> 是否有以下問題。
           <br />
           若總分 <strong>≧ 3 分</strong>，即「可能」有吞嚥障礙風險。
@@ -39,10 +39,10 @@ export function EAT10Form({ onSubmit, onSwitchResident }: { defaultScore?: numbe
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         {questions.map((q, i) => (
           <div key={i} style={{ padding: '24px', backgroundColor: '#f9fafb', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
-            <p style={{ margin: '0 0 20px 0', fontSize: '32px', fontWeight: 600, color: '#111827' }}>{q}</p>
+            <p style={{ margin: '0 0 20px 0', fontSize: '20px', fontWeight: 600, color: '#111827' }}>{q}</p>
             <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
               {options.map((opt) => (
-                <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontSize: '28px' }}>
+                <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', fontSize: '18px' }}>
                   <input
                     type="radio"
                     name={`eat10-q${i}`}
@@ -69,16 +69,16 @@ export function EAT10Form({ onSubmit, onSwitchResident }: { defaultScore?: numbe
         backgroundColor: totalScore >= 3 ? '#fef2f2' : '#f0fdf4', 
         borderRadius: '8px', border: `2px solid ${totalScore >= 3 ? '#fecaca' : '#bbf7d0'}` 
       }}>
-        <div style={{ fontSize: '40px', fontWeight: 600, color: totalScore >= 3 ? '#991b1b' : '#166534', display: 'flex', alignItems: 'center' }}>
+        <div style={{ fontSize: '24px', fontWeight: 600, color: totalScore >= 3 ? '#991b1b' : '#166534', display: 'flex', alignItems: 'center' }}>
           總分：{totalScore} 分
-          {totalScore >= 3 && <span style={{ marginLeft: '24px', fontSize: '28px', color: '#ef4444', backgroundColor: '#fee2e2', padding: '8px 16px', borderRadius: '20px' }}>⚠️ 具吞嚥障礙風險</span>}
+          {totalScore >= 3 && <span style={{ marginLeft: '24px', fontSize: '16px', color: '#ef4444', backgroundColor: '#fee2e2', padding: '8px 16px', borderRadius: '20px' }}>⚠️ 具吞嚥障礙風險</span>}
         </div>
         <div style={{ display: 'flex', gap: '16px' }}>
-          <button className="btn" style={{ padding: '16px 40px', fontSize: '32px' }} onClick={() => onSubmit({ eat10Score: totalScore })}>
+          <button className="btn" style={{ padding: '16px 40px', fontSize: '18px' }} onClick={() => onSubmit({ eat10Score: totalScore })}>
             儲存評估
           </button>
           {onSwitchResident && (
-            <button className="btn btn--sub" style={{ padding: '16px 24px', fontSize: '32px', backgroundColor: '#ffffff', border: '2px solid #d1d5db', color: '#4b5563' }} onClick={onSwitchResident}>
+            <button className="btn btn--sub" style={{ padding: '16px 24px', fontSize: '18px', backgroundColor: '#ffffff', border: '2px solid #d1d5db', color: '#4b5563' }} onClick={onSwitchResident}>
               🔄 切換住民
             </button>
           )}
