@@ -8,6 +8,7 @@ import type { AppState, AssessmentRecord, Feedback, Resident, StaffAccount } fro
 
 const PATAKA_BUCKET = 'pataka-audio'
 const RESIDENT_ATTACHMENTS_BUCKET = 'resident-attachments'
+const RESIDENT_ATTACHMENT_URL_TTL = 60 * 60
 
 type PatakaAudioUploadResult = {
   audioPath: string
@@ -17,6 +18,16 @@ type PatakaAudioUploadResult = {
 }
 
 type ResidentAttachment = Resident['attachments'][number]
+
+async function tryCreateResidentAttachmentUrl(path: string): Promise<string | null> {
+  await supabase.auth.getSession()
+  const { data, error } = await (supabase.storage.from(RESIDENT_ATTACHMENTS_BUCKET) as any).createSignedUrl(
+    path,
+    RESIDENT_ATTACHMENT_URL_TTL,
+  )
+  if (error || !data?.signedUrl) return null
+  return data.signedUrl
+}
 
 // 初始狀態
 const initialState: AppState = {
@@ -178,6 +189,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
                 : undefined
           const mimeType = typeof record.mimeType === 'string' ? record.mimeType : undefined
           const size = typeof record.size === 'number' ? record.size : undefined
+          const url = typeof record.url === 'string' ? record.url : undefined
           return {
             id: typeof record.id === 'string' ? record.id : makeId('att'),
             name,
@@ -185,6 +197,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             path,
             mimeType,
             size,
+            url,
           }
         }
         return null
@@ -210,6 +223,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           setLoading(false)
           return
         }
+
+        await supabase.auth.getSession()
 
         const mapResidentRow = (r: any): Resident => ({
           ...r,
@@ -238,11 +253,25 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         const resResidents = await (supabase.from('residents') as any).select('*')
         if (resResidents.error) throw resResidents.error
 
+        const residentsRaw = (resResidents.data || []).map(mapResidentRow)
+        const residents = await Promise.all(
+          residentsRaw.map(async (r) => {
+            const attachments = await Promise.all(
+              r.attachments.map(async (a) => {
+                if (!a.path || a.url) return a
+                const url = await tryCreateResidentAttachmentUrl(a.path)
+                return url ? { ...a, url } : a
+              }),
+            )
+            return { ...r, attachments }
+          }),
+        )
+
         dispatch({
           type: 'set_initial_data',
           state: {
             ...initialState,
-            residents: (resResidents.data || []).map(mapResidentRow),
+            residents,
             assessments: [],
           }
         })
@@ -430,13 +459,21 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         ? uploadedAttachments
         : (data[0] as { attachments?: unknown }).attachments ?? resident.attachments ?? []
     )
+    const attachmentsWithUrls = await Promise.all(
+      normalizedAttachments.map(async (a) => {
+        if (!a.path || a.url) return a
+        const url = await tryCreateResidentAttachmentUrl(a.path)
+        return url ? { ...a, url } : a
+      }),
+    )
+
     const newResident: Resident = {
       ...data[0],
       bedNo: data[0].bed_no,
       medicalSummary: data[0].medical_summary,
       oralCheckNotes: data[0].oral_check_notes,
       dietStatus: data[0].diet_status,
-      attachments: normalizedAttachments,
+      attachments: attachmentsWithUrls,
     } as Resident;
     dispatch({ type: 'add_resident_local', resident: newResident });
   }, [dispatch, uploadResidentAttachments])
@@ -494,7 +531,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const getResidentAttachmentUrl = useCallback(async (path: string) => {
-    const { data, error } = await (supabase.storage.from(RESIDENT_ATTACHMENTS_BUCKET) as any).createSignedUrl(path, 60 * 10)
+    await supabase.auth.getSession()
+    const { data, error } = await (supabase.storage.from(RESIDENT_ATTACHMENTS_BUCKET) as any).createSignedUrl(path, RESIDENT_ATTACHMENT_URL_TTL)
     if (error || !data?.signedUrl) {
       throw new Error(`取得附件連結失敗：${error?.message ?? '未知錯誤'}`)
     }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useSelectedResident, useStore } from '../store/store'
 import { useAuth } from '../auth'
@@ -27,16 +27,70 @@ export default function ResidentsBasicsPage() {
   const [prevResidentId, setPrevResidentId] = useState<string | undefined>(undefined)
   const canDeleteResident = can('delete:resident')
 
-  const handleOpenAttachment = async (attachment: { name: string; path?: string }) => {
+  const preloadResidentAttachments = useCallback(async (target: typeof resident) => {
+    if (!target) return
+    const nextAttachments = await Promise.all(
+      target.attachments.map(async (a) => {
+        if (!a.path || a.url) return a
+        try {
+          const url = await getResidentAttachmentUrl(a.path)
+          return { ...a, url }
+        } catch (error) {
+          const detail = error instanceof Error ? error.message : '取得附件連結失敗'
+          console.warn(`附件連結取得失敗: ${detail}`)
+          return a
+        }
+      }),
+    )
+    const changed = nextAttachments.some((a, idx) => a.url !== target.attachments[idx]?.url)
+    if (changed) {
+      dispatch({
+        type: 'update_resident_local',
+        id: target.id,
+        patch: { attachments: nextAttachments },
+      })
+    }
+  }, [dispatch, getResidentAttachmentUrl])
+
+  useEffect(() => {
+    void preloadResidentAttachments(resident)
+  }, [resident, preloadResidentAttachments])
+
+  const openAttachmentUrl = (url: string) => {
+    const opened = window.open(url, '_blank', 'noopener,noreferrer')
+    if (!opened) {
+      alert('瀏覽器阻擋彈出視窗，請允許此網站開新分頁後再試一次。')
+    }
+  }
+
+  const handleOpenAttachment = async (residentId: string, attachment: { id: string; name: string; path?: string; url?: string }) => {
+    if (attachment.url) {
+      openAttachmentUrl(attachment.url)
+      return
+    }
     if (!attachment.path) {
       alert('此附件尚未上傳，無法檢視')
       return
     }
+    const opened = window.open('about:blank', '_blank')
+    if (!opened) {
+      alert('瀏覽器阻擋彈出視窗，請允許此網站開新分頁後再試一次。')
+      return
+    }
+    opened.opener = null
     try {
       const url = await getResidentAttachmentUrl(attachment.path)
-      window.open(url, '_blank', 'noopener,noreferrer')
+      dispatch({
+        type: 'update_resident_local',
+        id: residentId,
+        patch: {
+          attachments: resident?.attachments.map((a) => (a.id === attachment.id ? { ...a, url } : a)) ?? [],
+        },
+      })
+      opened.location.replace(url)
     } catch (error) {
       const detail = error instanceof Error ? error.message : '取得附件連結失敗'
+      opened.close()
       alert(detail)
     }
   }
@@ -76,6 +130,7 @@ export default function ResidentsBasicsPage() {
   }
 
   const photoAttachment = resident?.attachments.find((a) => isImageAttachment(a.name, a.mimeType))
+  const photoUrl = photoAttachment?.url
 
   return (
     <div style={{
@@ -353,11 +408,17 @@ export default function ResidentsBasicsPage() {
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     flexShrink: 0
                   }}>
-                    {photoAttachment ? (
+                    {photoUrl ? (
+                      <img
+                        src={photoUrl}
+                        alt={`${resident.name} 照片`}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '6px' }}
+                      />
+                    ) : photoAttachment ? (
                       <button
                         className="btn btn--sub"
                         style={{ padding: '6px 10px', fontSize: '12px' }}
-                        onClick={() => handleOpenAttachment(photoAttachment)}
+                        onClick={() => handleOpenAttachment(resident.id, photoAttachment)}
                       >
                         檢視照片
                       </button>
@@ -381,14 +442,26 @@ export default function ResidentsBasicsPage() {
                           <div key={a.id} style={{ padding: '16px', fontSize: '16px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: '12px' }}>
                             <span style={{ fontSize: '24px' }}>{isImage ? '🖼️' : '📄'}</span> 
                             <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#374151', fontWeight: 500 }}>{a.name}</span>
-                            <button
-                              className="btn btn--sub"
-                              style={{ padding: '4px 10px', fontSize: '12px' }}
-                              onClick={() => handleOpenAttachment(a)}
-                              disabled={!a.path}
-                            >
-                              檢視
-                            </button>
+                            {a.url ? (
+                              <a
+                                className="btn btn--sub"
+                                style={{ padding: '4px 10px', fontSize: '12px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+                                href={a.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                檢視
+                              </a>
+                            ) : (
+                              <button
+                                className="btn btn--sub"
+                                style={{ padding: '4px 10px', fontSize: '12px' }}
+                                onClick={() => handleOpenAttachment(resident.id, a)}
+                                disabled={!a.path}
+                              >
+                                檢視
+                              </button>
+                            )}
                           </div>
                         )
                       })}

@@ -29,6 +29,7 @@ export type Resident = {
     path?: string
     mimeType?: string
     size?: number
+    url?: string
   }[]
   dietStatus: {
     feedingMethod: FeedingMethod
