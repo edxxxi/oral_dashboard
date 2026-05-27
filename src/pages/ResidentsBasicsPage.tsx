@@ -19,7 +19,8 @@ export default function ResidentsBasicsPage() {
 
   const [view, setView] = useState<'list' | 'add'>('list')
   const [newName, setNewName] = useState('')
-  const [newDob, setNewDob] = useState('')
+  const [newDobInput, setNewDobInput] = useState('')
+  const [newDobIso, setNewDobIso] = useState('')
   const [newBedNo, setNewBedNo] = useState('')
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [medicalFiles, setMedicalFiles] = useState<File[]>([])
@@ -289,10 +290,34 @@ export default function ResidentsBasicsPage() {
               <label className="field">
                 <span className="label" style={{ fontSize: '18px', fontWeight: 600 }}>出生年月日</span>
                 <input
-                  type="date"
-                  lang="en-CA"
-                  value={newDob}
-                  onChange={(e) => setNewDob(e.target.value)}
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="yyyy/mm/dd"
+                  value={newDobInput}
+                  onChange={(e) => {
+                    const raw = e.target.value
+                    const cleaned = raw.replace(/[^\d/]/g, '').replace(/\/{2,}/g, '/')
+                    setNewDobInput(cleaned)
+                    const match = cleaned.match(/^(\d{4})\/(\d{2})\/(\d{2})$/)
+                    if (!match) {
+                      setNewDobIso('')
+                      return
+                    }
+                    const [, y, m, d] = match
+                    const year = Number(y)
+                    const month = Number(m)
+                    const day = Number(d)
+                    if (!year || month < 1 || month > 12 || day < 1 || day > 31) {
+                      setNewDobIso('')
+                      return
+                    }
+                    const test = new Date(Date.UTC(year, month - 1, day))
+                    const valid =
+                      test.getUTCFullYear() === year &&
+                      test.getUTCMonth() === month - 1 &&
+                      test.getUTCDate() === day
+                    setNewDobIso(valid ? `${y}-${m}-${d}` : '')
+                  }}
                   style={{ fontSize: '18px', padding: '12px', borderRadius: '6px', border: '1px solid #d1d5db' }}
                 />
               </label>
@@ -338,8 +363,8 @@ export default function ResidentsBasicsPage() {
                   if (!newBedNo.trim()) return alert('請輸入床號');
                   
                   let age = 65;
-                  if (newDob) {
-                    age = new Date().getFullYear() - new Date(newDob).getFullYear();
+                  if (newDobIso) {
+                    age = new Date().getFullYear() - new Date(newDobIso).getFullYear();
                   }
 
                   // 呼叫新增方法
@@ -353,10 +378,10 @@ export default function ResidentsBasicsPage() {
                       bedNo: newBedNo.trim(),
                       name: newName.trim(),
                       age, 
-                      dob: newDob || undefined,
+                      dob: newDobIso || undefined,
                       dietStatus: { feedingMethod: 'oral', dietType: 'full', slpNotes: '', dietitianNotes: '' }
                     }, attachmentFiles);
-                    setNewName(''); setNewDob(''); setNewBedNo('');
+                    setNewName(''); setNewDobInput(''); setNewDobIso(''); setNewBedNo('');
                     setPhotoFile(null); setMedicalFiles([]);
                     setView('list');
                   } catch (err) {
