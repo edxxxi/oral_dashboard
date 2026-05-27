@@ -255,9 +255,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
         const residentsRaw = (resResidents.data || []).map(mapResidentRow)
         const residents = await Promise.all(
-          residentsRaw.map(async (r) => {
+          residentsRaw.map(async (r: Resident) => {
             const attachments = await Promise.all(
-              r.attachments.map(async (a) => {
+              r.attachments.map(async (a: ResidentAttachment) => {
                 if (!a.path || a.url) return a
                 const url = await tryCreateResidentAttachmentUrl(a.path)
                 return url ? { ...a, url } : a
