@@ -14,7 +14,7 @@ import type { AssessmentRecord, PatakaAssessment } from '../store/types'
 
 export default function AssessmentsPage() {
   const resident = useSelectedResident()
-  const { state, dispatch, addAssessment, uploadPatakaAudio, getPatakaAudioDownloadUrl } = useStore()
+  const { state, dispatch, addAssessment, updateAssessment, uploadPatakaAudio, getPatakaAudioDownloadUrl } = useStore()
   const { user, can } = useAuth()
   const location = useLocation()
 
@@ -25,6 +25,9 @@ export default function AssessmentsPage() {
   const [tab, setTab] = useState<'eat10' | 'mna' | 'rsst' | 'nursing' | 'pataka'>('eat10')
   const [q, setQ] = useState('')
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [activeAssessmentId, setActiveAssessmentId] = useState<string | null>(null)
+  const [activeAssessmentAt, setActiveAssessmentAt] = useState<string | null>(null)
+  const [prevResidentId, setPrevResidentId] = useState<string | null>(null)
 
   const risk = useMemo(() => computeRiskLevel(latest), [latest])
   const latestPataka = useMemo(() => {
@@ -37,8 +40,34 @@ export default function AssessmentsPage() {
 
   const savePatch = async (patch: Patch) => {
     if (!resident) return
-    await addAssessment(resident.id, patch)
+    if (!activeAssessmentId) {
+      alert('請先按「新增紀錄」建立本次評估，再填寫量表。')
+      return
+    }
+    const target = assessments.find((a) => a.id === activeAssessmentId)
+    const mergedPatch: Patch = { ...patch }
+    if (patch.nursingData && target?.nursingData) {
+      mergedPatch.nursingData = { ...target.nursingData, ...patch.nursingData }
+    }
+    await updateAssessment(activeAssessmentId, mergedPatch)
     alert('量表已成功儲存！')
+  }
+
+  const createAssessmentRecord = async () => {
+    if (!resident) return
+    const record = await addAssessment(resident.id, {})
+    if (!record) {
+      alert('新增紀錄失敗，請稍後再試。')
+      return
+    }
+    setActiveAssessmentId(record.id)
+    setActiveAssessmentAt(record.createdAt)
+  }
+
+  if ((resident?.id ?? null) !== prevResidentId) {
+    setPrevResidentId(resident?.id ?? null)
+    if (activeAssessmentId !== null) setActiveAssessmentId(null)
+    if (activeAssessmentAt !== null) setActiveAssessmentAt(null)
   }
 
   const downloadPatakaAudio = async (audioPath: string, audioFileName?: string) => {
@@ -253,6 +282,33 @@ export default function AssessmentsPage() {
             {/* 量表內容區塊 */}
             <section className="card" key={resident.id}>
               <div className="card__title" style={{ fontSize: '20px', marginBottom: '20px' }}>本次評估輸入</div>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: '16px',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                border: '1px solid #e5e7eb',
+                backgroundColor: '#f9fafb',
+                marginBottom: '16px',
+              }}>
+                <div style={{ color: '#4b5563', fontSize: '14px' }}>
+                  <div style={{ fontWeight: 600, color: '#111827', marginBottom: '4px' }}>本次評估紀錄</div>
+                  <div>
+                    {activeAssessmentAt
+                      ? `已建立：${formatDateTime(activeAssessmentAt)}`
+                      : '尚未建立，請先點「新增紀錄」'}
+                  </div>
+                </div>
+                <button
+                  className="btn"
+                  style={{ padding: '6px 14px', fontSize: '14px' }}
+                  onClick={() => { void createAssessmentRecord() }}
+                >
+                  ➕ 新增紀錄
+                </button>
+              </div>
               
               {tab === 'eat10' ? (
                 <EAT10Form defaultScore={latest?.eat10Score} onSubmit={(d) => savePatch(d)} onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }} />

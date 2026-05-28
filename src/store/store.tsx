@@ -48,6 +48,7 @@ type Action =
   | { type: 'add_resident_local'; resident: Resident }
   | { type: 'delete_resident_local'; id: string }
   | { type: 'add_assessment_local'; record: AssessmentRecord }
+  | { type: 'update_assessment_local'; id: string; patch: Partial<AssessmentRecord> }
   | { type: 'add_attachment'; residentId: string; name: string }
   | { type: 'add_staff'; staff: StaffAccount }
   | { type: 'toggle_staff'; id: string }
@@ -86,6 +87,11 @@ function reducer(state: AppState, action: Action): AppState {
       return { 
         ...state, 
         assessments: [action.record, ...state.assessments] 
+      }
+    case 'update_assessment_local':
+      return {
+        ...state,
+        assessments: state.assessments.map((a) => (a.id === action.id ? { ...a, ...action.patch } : a)),
       }
     case 'add_attachment':
       return {
@@ -146,7 +152,8 @@ type Store = {
   loading: boolean
   // 新增：直接操作資料庫的異步方法
   updateResident: (id: string, patch: Partial<Resident>) => Promise<void>
-  addAssessment: (residentId: string, patch: Partial<AssessmentRecord>) => Promise<void>
+  addAssessment: (residentId: string, patch: Partial<AssessmentRecord>) => Promise<AssessmentRecord | null>
+  updateAssessment: (assessmentId: string, patch: Partial<AssessmentRecord>) => Promise<void>
   // 新增：將住民寫入雲端資料庫
   addResident: (resident: Partial<Resident>, attachmentFiles?: File[]) => Promise<void>
   deleteResident: (residentId: string) => Promise<void>
@@ -365,6 +372,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         monthKey: monthKey
       } as AssessmentRecord
       dispatch({ type: 'add_assessment_local', record: newRecord });
+      return newRecord
     } else if (data && data[0]) {
       // 將資料庫回傳的結果（含自動生成的 ID）轉回前端格式
       const newRecord: AssessmentRecord = {
@@ -377,7 +385,44 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       } as AssessmentRecord
       
       dispatch({ type: 'add_assessment_local', record: newRecord });
+      return newRecord
     }
+    return null
+  }, [dispatch])
+
+  const updateAssessment = useCallback(async (assessmentId: string, patch: Partial<AssessmentRecord>) => {
+    const dbPatch: Record<string, unknown> = {}
+    if (patch.weightKg !== undefined) dbPatch.weight_kg = patch.weightKg
+    if (patch.spmsqErrors !== undefined) dbPatch.spmsq_errors = patch.spmsqErrors
+    if (patch.mnaScore !== undefined) dbPatch.mna_score = patch.mnaScore
+    if (patch.swallowScreen !== undefined) dbPatch.swallow_screen = patch.swallowScreen
+    if (patch.swallow30s !== undefined) dbPatch.swallow_30s = patch.swallow30s
+    if ((patch as { eat10Score?: number }).eat10Score !== undefined) dbPatch.eat10_score = (patch as { eat10Score?: number }).eat10Score
+    if (patch.rsstScore !== undefined) {
+      dbPatch.rsst_score = patch.rsstScore
+      if (patch.chewingScore === undefined) {
+        dbPatch.chewing_score = patch.rsstScore
+      }
+    }
+    if (patch.chewingScore !== undefined) dbPatch.chewing_score = patch.chewingScore
+    if ((patch as { nursingData?: AssessmentRecord['nursingData'] }).nursingData !== undefined) {
+      dbPatch.nursing_data = (patch as { nursingData?: AssessmentRecord['nursingData'] }).nursingData
+    }
+    if (patch.notes !== undefined) dbPatch.notes = patch.notes
+
+    if (Object.keys(dbPatch).length === 0) return
+
+    const { error } = await (supabase.from('assessment_records') as any)
+      .update(dbPatch)
+      .eq('id', assessmentId)
+
+    if (error) {
+      console.warn('雲端更新評估失敗，改用本地更新: ' + error.message)
+      dispatch({ type: 'update_assessment_local', id: assessmentId, patch })
+      return
+    }
+
+    dispatch({ type: 'update_assessment_local', id: assessmentId, patch })
   }, [dispatch])
 
   const uploadResidentAttachments = useCallback(async (residentId: string, files: File[]) => {
@@ -545,12 +590,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     loading, 
     updateResident, 
     addAssessment,
+    updateAssessment,
     addResident,
     deleteResident,
     uploadPatakaAudio,
     getPatakaAudioDownloadUrl,
     getResidentAttachmentUrl
-  }), [state, loading, updateResident, addAssessment, addResident, deleteResident, uploadPatakaAudio, getPatakaAudioDownloadUrl, getResidentAttachmentUrl])
+  }), [state, loading, updateResident, addAssessment, updateAssessment, addResident, deleteResident, uploadPatakaAudio, getPatakaAudioDownloadUrl, getResidentAttachmentUrl])
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
 }

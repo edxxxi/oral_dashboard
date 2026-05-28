@@ -26,16 +26,13 @@ export function computeRiskLevel(a?: AssessmentRecord): RiskLevel {
   if (!a) return 'medium'
   let score = 0
 
-  if (typeof a.mnaScore === 'number') {
-    if (a.mnaScore <= 7) score += 2
-    else if (a.mnaScore <= 11) score += 1
-  }
+  // 1) MNA-SF：<= 11 視為未達標
+  if (typeof a.mnaScore === 'number' && a.mnaScore <= 11) score += 1
 
-  if (typeof a.spmsqErrors === 'number') {
-    if (a.spmsqErrors >= 5) score += 2
-    else if (a.spmsqErrors >= 3) score += 1
-  }
+  // 2) SPMSQ：錯誤數 >= 3 視為未達標
+  if (typeof a.spmsqErrors === 'number' && a.spmsqErrors >= 3) score += 1
 
+  // 3) 吞嚥篩檢：任一旗標為真即未達標
   if (a.swallowScreen) {
     const flags = [
       a.swallowScreen.coughWhenDrinking,
@@ -43,19 +40,21 @@ export function computeRiskLevel(a?: AssessmentRecord): RiskLevel {
       a.swallowScreen.chokingHistory,
       a.swallowScreen.needsAssistFeeding,
     ].filter(Boolean).length
-    if (flags >= 3) score += 2
-    else if (flags >= 1) score += 1
+    if (flags >= 1) score += 1
   }
 
+  // 4) 30 秒吞嚥：有咳嗽或次數 < 3 視為未達標
   if (a.swallow30s) {
-    if (a.swallow30s.cough) score += 2
-    if (typeof a.swallow30s.swallows === 'number' && a.swallow30s.swallows < 3) score += 1
+    const lowSwallow =
+      typeof a.swallow30s.swallows === 'number' && a.swallow30s.swallows < 3
+    if (a.swallow30s.cough || lowSwallow) score += 1
   }
 
+  // 5) 體重：< 45kg 視為未達標
   if (typeof a.weightKg === 'number' && a.weightKg < 45) score += 1
 
-  if (score >= 5) return 'high'
-  if (score >= 2) return 'medium'
+  if (score > 4) return 'high'
+  if (score === 3) return 'medium'
   return 'low'
 }
 
