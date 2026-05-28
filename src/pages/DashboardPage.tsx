@@ -11,6 +11,7 @@ export default function DashboardPage() {
   const navigate = useNavigate()
   const [q, setQ] = useState('')
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [hoveredRisk, setHoveredRisk] = useState<'high' | 'medium' | 'low' | null>(null)
 
   const handleLogout = () => {
     // 清除前端 prototype 暫存的登入狀態並重整/導向登入頁
@@ -32,7 +33,7 @@ export default function DashboardPage() {
     r.name.toLowerCase().includes(q.toLowerCase())
   )
 
-  const riskCounts = useMemo(() => {
+  const riskSummary = useMemo(() => {
     const latestByResident = new Map<string, (typeof assessments)[number]>()
     for (const assessment of assessments) {
       const existing = latestByResident.get(assessment.residentId)
@@ -41,18 +42,39 @@ export default function DashboardPage() {
       }
     }
 
-    let red = 0
-    let yellow = 0
-    let green = 0
+    const groups = {
+      high: [] as { id: string; bedNo: string; name: string; label: string }[],
+      medium: [] as { id: string; bedNo: string; name: string; label: string }[],
+      low: [] as { id: string; bedNo: string; name: string; label: string }[],
+    }
 
     for (const resident of residents) {
       const risk = computeRiskLevel(latestByResident.get(resident.id))
-      if (risk === 'high') red += 1
-      else if (risk === 'medium') yellow += 1
-      else green += 1
+      groups[risk].push({
+        id: resident.id,
+        bedNo: resident.bedNo,
+        name: resident.name,
+        label: `${resident.bedNo} ${resident.name}`,
+      })
     }
 
-    return { red, yellow, green }
+    const sortFn = (a: { bedNo: string; name: string }, b: { bedNo: string; name: string }) =>
+      a.bedNo.localeCompare(b.bedNo, undefined, { numeric: true }) || a.name.localeCompare(b.name)
+
+    const sorted = {
+      high: [...groups.high].sort(sortFn),
+      medium: [...groups.medium].sort(sortFn),
+      low: [...groups.low].sort(sortFn),
+    }
+
+    return {
+      groups: sorted,
+      counts: {
+        red: sorted.high.length,
+        yellow: sorted.medium.length,
+        green: sorted.low.length,
+      },
+    }
   }, [assessments, residents])
 
   const handleSearchEnter = (e: React.KeyboardEvent) => {
@@ -227,9 +249,123 @@ export default function DashboardPage() {
           justifyContent: 'center'
         }}>
           <span>住民人數：{residents.length}</span>
-          <span style={{ color: '#b91c1c' }}>紅燈：{riskCounts.red}</span>
-          <span style={{ color: '#b45309' }}>黃燈：{riskCounts.yellow}</span>
-          <span style={{ color: '#15803d' }}>綠燈：{riskCounts.green}</span>
+          <span
+            style={{ color: '#b91c1c', position: 'relative', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            onMouseEnter={() => setHoveredRisk('high')}
+            onMouseLeave={() => setHoveredRisk(null)}
+          >
+            <span style={{ width: 8, height: 8, borderRadius: 999, backgroundColor: '#ef4444' }} />
+            紅燈：{riskSummary.counts.red}
+            {hoveredRisk === 'high' && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                marginTop: '8px',
+                backgroundColor: '#fff',
+                color: '#111827',
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                boxShadow: '0 8px 16px rgba(0,0,0,0.12)',
+                padding: '12px',
+                minWidth: '220px',
+                maxWidth: '320px',
+                zIndex: 20,
+              }}>
+                <div style={{ fontWeight: 700, marginBottom: '8px' }}>紅燈住民</div>
+                {riskSummary.groups.high.length === 0 ? (
+                  <div style={{ color: '#6b7280' }}>目前無</div>
+                ) : (
+                  <div style={{ maxHeight: '220px', overflowY: 'auto', fontWeight: 500 }}>
+                    {riskSummary.groups.high.map((r) => (
+                      <div key={r.id} style={{ padding: '4px 0', borderBottom: '1px dashed #f3f4f6' }}>
+                        {r.label}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </span>
+          <span
+            style={{ color: '#b45309', position: 'relative', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            onMouseEnter={() => setHoveredRisk('medium')}
+            onMouseLeave={() => setHoveredRisk(null)}
+          >
+            <span style={{ width: 8, height: 8, borderRadius: 999, backgroundColor: '#f59e0b' }} />
+            黃燈：{riskSummary.counts.yellow}
+            {hoveredRisk === 'medium' && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                marginTop: '8px',
+                backgroundColor: '#fff',
+                color: '#111827',
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                boxShadow: '0 8px 16px rgba(0,0,0,0.12)',
+                padding: '12px',
+                minWidth: '220px',
+                maxWidth: '320px',
+                zIndex: 20,
+              }}>
+                <div style={{ fontWeight: 700, marginBottom: '8px' }}>黃燈住民</div>
+                {riskSummary.groups.medium.length === 0 ? (
+                  <div style={{ color: '#6b7280' }}>目前無</div>
+                ) : (
+                  <div style={{ maxHeight: '220px', overflowY: 'auto', fontWeight: 500 }}>
+                    {riskSummary.groups.medium.map((r) => (
+                      <div key={r.id} style={{ padding: '4px 0', borderBottom: '1px dashed #f3f4f6' }}>
+                        {r.label}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </span>
+          <span
+            style={{ color: '#15803d', position: 'relative', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            onMouseEnter={() => setHoveredRisk('low')}
+            onMouseLeave={() => setHoveredRisk(null)}
+          >
+            <span style={{ width: 8, height: 8, borderRadius: 999, backgroundColor: '#22c55e' }} />
+            綠燈：{riskSummary.counts.green}
+            {hoveredRisk === 'low' && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                marginTop: '8px',
+                backgroundColor: '#fff',
+                color: '#111827',
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                boxShadow: '0 8px 16px rgba(0,0,0,0.12)',
+                padding: '12px',
+                minWidth: '220px',
+                maxWidth: '320px',
+                zIndex: 20,
+              }}>
+                <div style={{ fontWeight: 700, marginBottom: '8px' }}>綠燈住民</div>
+                {riskSummary.groups.low.length === 0 ? (
+                  <div style={{ color: '#6b7280' }}>目前無</div>
+                ) : (
+                  <div style={{ maxHeight: '220px', overflowY: 'auto', fontWeight: 500 }}>
+                    {riskSummary.groups.low.map((r) => (
+                      <div key={r.id} style={{ padding: '4px 0', borderBottom: '1px dashed #f3f4f6' }}>
+                        {r.label}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </span>
         </div>
       </div>
     </div>
