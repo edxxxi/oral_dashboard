@@ -185,10 +185,17 @@ export default function ReportPage() {
             <span style={{ fontSize: '32px', display: 'block', marginBottom: '16px' }}>📊</span>
             <p style={{ color: '#4b5563', fontSize: '18px', margin: 0 }}>請先從上方搜尋列選擇要查看報告的病人。</p>
           </div>
+        ) : !latest ? (
+          /* ① 空狀態保護：有選住民但尚無任何評估紀錄 */
+          <div style={{ padding: '48px', textAlign: 'center', backgroundColor: '#ffffff', borderRadius: '8px', border: '1px dashed #fbbf24', backgroundColor: '#fffbeb' }}>
+            <span style={{ fontSize: '32px', display: 'block', marginBottom: '16px' }}>📋</span>
+            <p style={{ color: '#92400e', fontSize: '18px', margin: '0 0 8px 0', fontWeight: 600 }}>尚無評估資料</p>
+            <p style={{ color: '#b45309', fontSize: '15px', margin: 0 }}>請先至「評估量表」頁面完成評估，再回此頁查看報告。</p>
+          </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            
-            {/* 1. 放大版：風險與餐食 */}
+
+            {/* 1. 風險與餐食 */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
               <section style={{ backgroundColor: '#ffffff', padding: '32px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
                 <div style={{ fontSize: '18px', fontWeight: 600, color: '#6b7280', marginBottom: '16px' }}>量表綜合風險判定</div>
@@ -211,34 +218,123 @@ export default function ReportPage() {
               </section>
             </div>
 
-            {/* 2. 認知功能評估結果 (如果有資料) */}
-            {nursingData && (
-              <section style={{ backgroundColor: '#ffffff', padding: '24px 32px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                <div style={{ fontSize: '20px', fontWeight: 700, color: '#111827', marginBottom: '20px', borderBottom: '2px solid #f3f4f6', paddingBottom: '12px' }}>最新認知功能評估指標</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
-                  <div style={{ backgroundColor: '#f9fafb', padding: '16px', borderRadius: '8px', border: '1px solid #f3f4f6' }}>
-                    <div style={{ color: '#6b7280', fontSize: '14px', marginBottom: '8px' }}>SPMSQ 心智功能</div>
-                    <div style={{ fontSize: '22px', fontWeight: 700, color: '#4338ca' }}>{nursingData.spmsq?.result || '—'}</div>
+            {/* ② 各量表最新分數摘要 */}
+            <section style={{ backgroundColor: '#ffffff', padding: '24px 32px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+              <div style={{ fontSize: '20px', fontWeight: 700, color: '#111827', marginBottom: '20px', borderBottom: '2px solid #f3f4f6', paddingBottom: '12px' }}>各量表最新分數</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                {/* EAT-10 */}
+                <div style={{ backgroundColor: '#f9fafb', padding: '20px', borderRadius: '10px', border: '1px solid #f3f4f6' }}>
+                  <div style={{ color: '#6b7280', fontSize: '13px', marginBottom: '8px', fontWeight: 600 }}>EAT-10 吞嚥篩檢</div>
+                  <div style={{ fontSize: '28px', fontWeight: 800, color: '#111827', marginBottom: '8px' }}>
+                    {typeof latest.eat10Score === 'number' ? `${latest.eat10Score} 分` : '—'}
                   </div>
+                  {typeof latest.eat10Score === 'number' && (
+                    <span style={{
+                      fontSize: '13px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px',
+                      color: latest.eat10Score >= 3 ? '#991b1b' : '#166534',
+                      backgroundColor: latest.eat10Score >= 3 ? '#fee2e2' : '#dcfce7',
+                    }}>
+                      {latest.eat10Score >= 3 ? '有吞嚥障礙風險' : '正常範圍'}
+                    </span>
+                  )}
+                </div>
+                {/* MNA-SF */}
+                <div style={{ backgroundColor: '#f9fafb', padding: '20px', borderRadius: '10px', border: '1px solid #f3f4f6' }}>
+                  <div style={{ color: '#6b7280', fontSize: '13px', marginBottom: '8px', fontWeight: 600 }}>MNA-SF 營養篩檢</div>
+                  <div style={{ fontSize: '28px', fontWeight: 800, color: '#111827', marginBottom: '8px' }}>
+                    {typeof latest.mnaScore === 'number' ? `${latest.mnaScore} 分` : '—'}
+                  </div>
+                  {typeof latest.mnaScore === 'number' && (
+                    <span style={{
+                      fontSize: '13px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px',
+                      color: latest.mnaScore <= 11 ? '#991b1b' : '#166534',
+                      backgroundColor: latest.mnaScore <= 11 ? '#fee2e2' : '#dcfce7',
+                    }}>
+                      {latest.mnaScore <= 11 ? '有營養不良風險' : '營養狀況良好'}
+                    </span>
+                  )}
+                </div>
+                {/* RSST */}
+                <div style={{ backgroundColor: '#f9fafb', padding: '20px', borderRadius: '10px', border: '1px solid #f3f4f6' }}>
+                  <div style={{ color: '#6b7280', fontSize: '13px', marginBottom: '8px', fontWeight: 600 }}>RSST 唾液吞嚥測試</div>
+                  <div style={{ fontSize: '28px', fontWeight: 800, color: '#111827', marginBottom: '8px' }}>
+                    {typeof latest.rsstScore === 'number' ? `${latest.rsstScore} 次` : '—'}
+                  </div>
+                  {typeof latest.rsstScore === 'number' && (
+                    <span style={{
+                      fontSize: '13px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px',
+                      color: latest.rsstScore < 3 ? '#991b1b' : '#166534',
+                      backgroundColor: latest.rsstScore < 3 ? '#fee2e2' : '#dcfce7',
+                    }}>
+                      {latest.rsstScore < 3 ? '吞嚥功能異常' : '吞嚥功能正常'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </section>
+
+            {/* ③ Pataka 聲音評估結果 (如果有資料) */}
+            {nursingData?.pataka && (
+              <section style={{ backgroundColor: '#ffffff', padding: '24px 32px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                <div style={{ fontSize: '20px', fontWeight: 700, color: '#111827', marginBottom: '20px', borderBottom: '2px solid #f3f4f6', paddingBottom: '12px' }}>Pataka 聲音評估結果</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <div style={{ backgroundColor: '#f9fafb', padding: '14px 20px', borderRadius: '8px', border: '1px solid #f3f4f6', textAlign: 'center' }}>
+                      <div style={{ color: '#6b7280', fontSize: '12px', marginBottom: '6px' }}>音量 60 分貝</div>
+                      <div style={{ fontSize: '18px', fontWeight: 700, color: (nursingData.pataka.db60Passed ?? nursingData.pataka.db50Passed) ? '#166534' : '#991b1b' }}>
+                        {(nursingData.pataka.db60Passed ?? nursingData.pataka.db50Passed) ? '通過' : '未通過'}
+                      </div>
+                    </div>
+                    <div style={{ backgroundColor: '#f9fafb', padding: '14px 20px', borderRadius: '8px', border: '1px solid #f3f4f6', textAlign: 'center' }}>
+                      <div style={{ color: '#6b7280', fontSize: '12px', marginBottom: '6px' }}>發音明晰度</div>
+                      <div style={{ fontSize: '18px', fontWeight: 700, color: nursingData.pataka.clarityPassed ? '#166534' : '#991b1b' }}>
+                        {nursingData.pataka.clarityPassed ? '通過' : '未通過'}
+                      </div>
+                    </div>
+                  </div>
+                  <span style={{
+                    fontSize: '16px', fontWeight: 700, padding: '10px 20px', borderRadius: '20px',
+                    color: (nursingData.pataka.db60Passed ?? nursingData.pataka.db50Passed) && nursingData.pataka.clarityPassed ? '#166534' : '#991b1b',
+                    backgroundColor: (nursingData.pataka.db60Passed ?? nursingData.pataka.db50Passed) && nursingData.pataka.clarityPassed ? '#dcfce7' : '#fee2e2',
+                  }}>
+                    {(nursingData.pataka.db60Passed ?? nursingData.pataka.db50Passed) && nursingData.pataka.clarityPassed ? '無口說不良風險' : '口說不良風險'}
+                  </span>
                 </div>
               </section>
             )}
 
-            {/* 3. 趨勢圖 (點狀折線圖) */}
+            {/* 認知功能評估結果 (如果有資料) */}
+            {nursingData?.spmsq && (
+              <section style={{ backgroundColor: '#ffffff', padding: '24px 32px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                <div style={{ fontSize: '20px', fontWeight: 700, color: '#111827', marginBottom: '20px', borderBottom: '2px solid #f3f4f6', paddingBottom: '12px' }}>最新認知功能評估指標</div>
+                <div style={{ backgroundColor: '#f9fafb', padding: '16px', borderRadius: '8px', border: '1px solid #f3f4f6', display: 'inline-block' }}>
+                  <div style={{ color: '#6b7280', fontSize: '14px', marginBottom: '8px' }}>SPMSQ 心智功能</div>
+                  <div style={{ fontSize: '22px', fontWeight: 700, color: '#4338ca' }}>{nursingData.spmsq.result}</div>
+                </div>
+              </section>
+            )}
+
+            {/* 趨勢圖 */}
             <section style={{ backgroundColor: '#ffffff', padding: '24px 32px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
               <div style={{ fontSize: '20px', fontWeight: 700, color: '#111827', marginBottom: '24px' }}>歷史趨勢變化</div>
-              <div style={{ height: 320, width: '100%' }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={trend} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                    <XAxis dataKey="month" stroke="#6b7280" tick={{ fill: '#4b5563' }} tickMargin={12} />
-                    <YAxis domain={[0.5, 3.5]} ticks={[1, 2, 3]} stroke="#ef4444" tick={{ fill: '#ef4444' }} tickFormatter={(val) => val === 1 ? '低' : val === 2 ? '中' : '高'} />
-                    <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }} />
-                    <Legend verticalAlign="top" height={36} />
-                    <Line type="linear" dataKey="risk" name="AI 風險 (低/中/高)" stroke="#ef4444" strokeWidth={3} dot={{ r: 6, fill: '#ffffff', strokeWidth: 2 }} activeDot={{ r: 8, fill: '#ef4444' }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
+              {trend.length < 2 ? (
+                <div style={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '15px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
+                  資料筆數不足，至少需要 2 個月的評估才能顯示趨勢
+                </div>
+              ) : (
+                <div style={{ height: 320, width: '100%' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={trend} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                      <XAxis dataKey="month" stroke="#6b7280" tick={{ fill: '#4b5563' }} tickMargin={12} />
+                      <YAxis domain={[0.5, 3.5]} ticks={[1, 2, 3]} stroke="#ef4444" tick={{ fill: '#ef4444' }} tickFormatter={(val) => val === 1 ? '低' : val === 2 ? '中' : '高'} />
+                      <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }} />
+                      <Legend verticalAlign="top" height={36} />
+                      <Line type="linear" dataKey="risk" name="AI 風險 (低/中/高)" stroke="#ef4444" strokeWidth={3} dot={{ r: 6, fill: '#ffffff', strokeWidth: 2 }} activeDot={{ r: 8, fill: '#ef4444' }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </section>
 
           </div>
