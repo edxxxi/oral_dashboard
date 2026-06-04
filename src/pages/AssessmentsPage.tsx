@@ -63,8 +63,12 @@ export default function AssessmentsPage() {
     if (patch.nursingData && target?.nursingData) {
       mergedPatch.nursingData = { ...target.nursingData, ...patch.nursingData }
     }
-    await updateAssessment(activeAssessmentId, mergedPatch)
-    showSaveMsg('量表已成功儲存！')
+    const ok = await updateAssessment(activeAssessmentId, mergedPatch)
+    if (ok) {
+      showSaveMsg('量表已成功儲存！')
+    } else {
+      showSaveMsg('雲端儲存失敗，請確認網路連線或聯繫管理員。', false)
+    }
   }
 
   const createAssessmentRecord = async () => {

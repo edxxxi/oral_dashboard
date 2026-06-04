@@ -153,7 +153,7 @@ type Store = {
   // 新增：直接操作資料庫的異步方法
   updateResident: (id: string, patch: Partial<Resident>) => Promise<void>
   addAssessment: (residentId: string, patch: Partial<AssessmentRecord>) => Promise<AssessmentRecord | null>
-  updateAssessment: (assessmentId: string, patch: Partial<AssessmentRecord>) => Promise<void>
+  updateAssessment: (assessmentId: string, patch: Partial<AssessmentRecord>) => Promise<boolean>
   // 新增：將住民寫入雲端資料庫
   addResident: (resident: Partial<Resident>, attachmentFiles?: File[]) => Promise<void>
   deleteResident: (residentId: string) => Promise<void>
@@ -363,16 +363,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       .select()
 
     if (error) {
-      console.warn('雲端儲存失敗，轉為本地原型儲存: ' + error.message);
-      const newRecord: AssessmentRecord = {
-        ...patch,
-        id: `local-ass-${Date.now()}`,
-        residentId: residentId,
-        createdAt: createdAt,
-        monthKey: monthKey
-      } as AssessmentRecord
-      dispatch({ type: 'add_assessment_local', record: newRecord });
-      return newRecord
+      console.error('雲端儲存失敗: ' + error.message);
+      // 回傳 null 讓呼叫端顯示錯誤，不做靜默 local fallback 以免誤導使用者
+      return null
     } else if (data && data[0]) {
       // 將資料庫回傳的結果（含自動生成的 ID）轉回前端格式
       const newRecord: AssessmentRecord = {
@@ -390,7 +383,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     return null
   }, [dispatch])
 
-  const updateAssessment = useCallback(async (assessmentId: string, patch: Partial<AssessmentRecord>) => {
+  const updateAssessment = useCallback(async (assessmentId: string, patch: Partial<AssessmentRecord>): Promise<boolean> => {
     const dbPatch: Record<string, unknown> = {}
     if (patch.weightKg !== undefined) dbPatch.weight_kg = patch.weightKg
     if (patch.spmsqErrors !== undefined) dbPatch.spmsq_errors = patch.spmsqErrors
@@ -410,19 +403,19 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
     if (patch.notes !== undefined) dbPatch.notes = patch.notes
 
-    if (Object.keys(dbPatch).length === 0) return
+    if (Object.keys(dbPatch).length === 0) return true
 
     const { error } = await (supabase.from('assessment_records') as any)
       .update(dbPatch)
       .eq('id', assessmentId)
 
     if (error) {
-      console.warn('雲端更新評估失敗，改用本地更新: ' + error.message)
-      dispatch({ type: 'update_assessment_local', id: assessmentId, patch })
-      return
+      console.error('雲端更新評估失敗: ' + error.message)
+      return false
     }
 
     dispatch({ type: 'update_assessment_local', id: assessmentId, patch })
+    return true
   }, [dispatch])
 
   const uploadResidentAttachments = useCallback(async (residentId: string, files: File[]) => {
