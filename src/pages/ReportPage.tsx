@@ -187,7 +187,7 @@ export default function ReportPage() {
           </div>
         ) : !latest ? (
           /* ① 空狀態保護：有選住民但尚無任何評估紀錄 */
-          <div style={{ padding: '48px', textAlign: 'center', backgroundColor: '#ffffff', borderRadius: '8px', border: '1px dashed #fbbf24', backgroundColor: '#fffbeb' }}>
+          <div style={{ padding: '48px', textAlign: 'center', backgroundColor: '#fffbeb', borderRadius: '8px', border: '1px dashed #fbbf24' }}>
             <span style={{ fontSize: '32px', display: 'block', marginBottom: '16px' }}>📋</span>
             <p style={{ color: '#92400e', fontSize: '18px', margin: '0 0 8px 0', fontWeight: 600 }}>尚無評估資料</p>
             <p style={{ color: '#b45309', fontSize: '15px', margin: 0 }}>請先至「評估量表」頁面完成評估，再回此頁查看報告。</p>
