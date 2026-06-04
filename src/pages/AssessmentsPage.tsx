@@ -376,7 +376,7 @@ export default function AssessmentsPage() {
                 <RSSTForm key={`${resident.id}-${activeAssessmentId ?? 'new'}`} defaultScore={defaultRecord?.rsstScore} onSubmit={(d) => savePatch(d)} onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }} />
               </div>
               <div style={{ display: tab === 'nursing' ? 'block' : 'none' }}>
-                <NursingAssessments key={`${resident.id}-${activeAssessmentId ?? 'new'}`} defaultNotes={defaultRecord?.notes ?? ''} onSave={(d) => savePatch({ nursingData: { spmsq: d.spmsq }, notes: d.notes })} onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }} />
+                <NursingAssessments key={`${resident.id}-${activeAssessmentId ?? 'new'}`} defaultNotes={defaultRecord?.notes ?? ''} onSave={(d) => savePatch({ nursingData: { spmsq: d.spmsq }, notes: d.notes, spmsqErrors: typeof d.spmsq?.errors === 'number' ? d.spmsq.errors : undefined })} onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }} />
               </div>
               <div style={{ display: tab === 'pataka' ? 'block' : 'none' }}>
                 <PatakaForm
