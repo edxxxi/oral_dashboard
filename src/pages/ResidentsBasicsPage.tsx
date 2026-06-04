@@ -10,7 +10,7 @@ const isImageAttachment = (name: string, mimeType?: string) =>
 export default function ResidentsBasicsPage() {
   const resident = useSelectedResident()
   const { dispatch, state, addResident, deleteResident, getResidentAttachmentUrl } = useStore()
-  const { user, can } = useAuth()
+  const { user, can, signOut } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -25,7 +25,6 @@ export default function ResidentsBasicsPage() {
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [medicalFiles, setMedicalFiles] = useState<File[]>([])
 
-  const [prevResidentId, setPrevResidentId] = useState<string | undefined>(undefined)
   const canDeleteResident = can('delete:resident')
 
   const preloadResidentAttachments = useCallback(async (target: typeof resident) => {
@@ -96,15 +95,10 @@ export default function ResidentsBasicsPage() {
     }
   }
 
-  if (resident?.id !== prevResidentId) {
-    setPrevResidentId(resident?.id)
-  }
-
-
   // 登出功能
-  const handleLogout = () => {
-    localStorage.clear()
-    window.location.href = '/login'
+  const handleLogout = async () => {
+    await signOut()
+    navigate('/login', { replace: true })
   }
 
   // 導航選項

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, Legend } from 'recharts'
 import { RiskLight } from '../components/RiskLight'
 import { useResidentAssessments, useSelectedResident, useStore } from '../store/store'
@@ -10,7 +10,8 @@ import { formatDateTime } from '../utils/date'
 export default function ReportPage() {
   const resident = useSelectedResident()
   const { state, dispatch } = useStore()
-  const { user } = useAuth()
+  const { user, signOut } = useAuth()
+  const navigate = useNavigate()
   const location = useLocation()
 
   const assessments = useResidentAssessments(resident?.id ?? null)
@@ -47,9 +48,9 @@ export default function ReportPage() {
   const [showUserMenu, setShowUserMenu] = useState(false)
 
   // 登出功能
-  const handleLogout = () => {
-    localStorage.clear()
-    window.location.href = '/login'
+  const handleLogout = async () => {
+    await signOut()
+    navigate('/login', { replace: true })
   }
 
   // 導航選項
@@ -191,7 +192,7 @@ export default function ReportPage() {
             {/* 1. 放大版：風險與餐食 */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
               <section style={{ backgroundColor: '#ffffff', padding: '32px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
-                <div style={{ fontSize: '18px', fontWeight: 600, color: '#6b7280', marginBottom: '16px' }}>AI 綜合風險判定</div>
+                <div style={{ fontSize: '18px', fontWeight: 600, color: '#6b7280', marginBottom: '16px' }}>量表綜合風險判定</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                   <div style={{ transform: 'scale(1.5)' }}><RiskLight level={risk} showLabel={false} /></div>
                   <div style={{ fontSize: '36px', fontWeight: 800, color: risk === 'high' ? '#b91c1c' : risk === 'medium' ? '#b45309' : '#15803d' }}>

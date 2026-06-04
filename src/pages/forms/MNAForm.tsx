@@ -62,8 +62,8 @@ export function MNAForm({
   onSubmit: (data: { mnaScore?: number }) => void
   onSwitchResident?: () => void
 }) {
-  // 初始化 6 題的答案皆為 0 分
   const [answers, setAnswers] = useState<number[]>(Array(6).fill(0))
+  const [isDirty, setIsDirty] = useState(false)
 
   const totalScore = useMemo(() => answers.reduce((a, b) => a + b, 0), [answers])
 
@@ -94,6 +94,7 @@ export function MNAForm({
                       const newAnswers = [...answers]
                       newAnswers[i] = opt.value
                       setAnswers(newAnswers)
+                      setIsDirty(true)
                     }}
                     style={{ width: '40px', height: '40px', cursor: disabled ? 'not-allowed' : 'pointer' }}
                   />
@@ -105,15 +106,15 @@ export function MNAForm({
         ))}
       </div>
 
-      <div style={{ 
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-        marginTop: '16px', padding: '24px', 
-        backgroundColor: totalScore <= 11 ? '#fef2f2' : '#f0fdf4', 
-        borderRadius: '8px', border: `2px solid ${totalScore <= 11 ? '#fecaca' : '#bbf7d0'}` 
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        marginTop: '16px', padding: '24px',
+        backgroundColor: !isDirty ? '#f3f4f6' : totalScore <= 11 ? '#fef2f2' : '#f0fdf4',
+        borderRadius: '8px', border: `2px solid ${!isDirty ? '#e5e7eb' : totalScore <= 11 ? '#fecaca' : '#bbf7d0'}`
       }}>
-        <div style={{ fontSize: '24px', fontWeight: 600, color: totalScore <= 11 ? '#991b1b' : '#166534', display: 'flex', alignItems: 'center' }}>
-          總分：{totalScore} 分
-          {totalScore <= 11 && <span style={{ marginLeft: '24px', fontSize: '16px', color: '#ef4444', backgroundColor: '#fee2e2', padding: '8px 16px', borderRadius: '20px' }}>⚠️ 具營養不良風險</span>}
+        <div style={{ fontSize: '24px', fontWeight: 600, color: !isDirty ? '#6b7280' : totalScore <= 11 ? '#991b1b' : '#166534', display: 'flex', alignItems: 'center' }}>
+          總分：{isDirty ? `${totalScore} 分` : '尚未填寫'}
+          {isDirty && totalScore <= 11 && <span style={{ marginLeft: '24px', fontSize: '16px', color: '#ef4444', backgroundColor: '#fee2e2', padding: '8px 16px', borderRadius: '20px' }}>⚠️ 具營養不良風險</span>}
         </div>
         <div style={{ display: 'flex', gap: '16px' }}>
           <button className="btn" disabled={disabled} style={{ padding: '16px 40px', fontSize: '18px' }} onClick={() => onSubmit({ mnaScore: totalScore })}>

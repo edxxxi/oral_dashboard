@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useResidentAssessments, useSelectedResident, useStore } from '../store/store'
 import { useAuth } from '../auth'
 import { formatDateTime } from '../utils/date'
@@ -10,12 +10,13 @@ import { EAT10Form } from './forms/EAT10Form'
 import { RSSTForm } from './forms/ChewingForm'
 import NursingAssessments from './forms/NursingAssessments'
 import { PatakaForm } from './forms/PatakaForm'
-import type { AssessmentRecord, PatakaAssessment } from '../store/types'
+import type { AssessmentRecord } from '../store/types'
 
 export default function AssessmentsPage() {
   const resident = useSelectedResident()
   const { state, dispatch, addAssessment, updateAssessment, uploadPatakaAudio, getPatakaAudioDownloadUrl } = useStore()
-  const { user, can } = useAuth()
+  const { user, can, signOut } = useAuth()
+  const navigate = useNavigate()
   const location = useLocation()
 
   const assessments = useResidentAssessments(resident?.id ?? null)
@@ -27,30 +28,41 @@ export default function AssessmentsPage() {
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [activeAssessmentId, setActiveAssessmentId] = useState<string | null>(null)
   const [activeAssessmentAt, setActiveAssessmentAt] = useState<string | null>(null)
-  const [prevResidentId, setPrevResidentId] = useState<string | null>(null)
+  const [saveMsg, setSaveMsg] = useState<{ text: string; ok: boolean } | null>(null)
 
   const risk = useMemo(() => computeRiskLevel(latest), [latest])
-  const latestPataka = useMemo(() => {
-    return assessments
-      .map((record) => record.nursingData?.pataka)
-      .find((pataka): pataka is PatakaAssessment => Boolean(pataka))
-  }, [assessments])
+  const latestPataka = assessments[0]?.nursingData?.pataka
+
+  const showSaveMsg = (text: string, ok = true) => {
+    setSaveMsg({ text, ok })
+    if (ok) setTimeout(() => setSaveMsg(null), 3000)
+  }
 
   type Patch = Partial<Omit<AssessmentRecord, 'id' | 'residentId' | 'createdAt' | 'monthKey'>>
 
   const savePatch = async (patch: Patch) => {
     if (!resident) return
+
+    // 尚未建立紀錄時，自動建立並將資料一併寫入
     if (!activeAssessmentId) {
-      alert('請先按「新增紀錄」建立本次評估，再填寫量表。')
+      const record = await addAssessment(resident.id, patch)
+      if (!record) {
+        showSaveMsg('建立紀錄失敗，請稍後再試。', false)
+        return
+      }
+      setActiveAssessmentId(record.id)
+      setActiveAssessmentAt(record.createdAt)
+      showSaveMsg('量表已成功儲存！')
       return
     }
+
     const target = assessments.find((a) => a.id === activeAssessmentId)
     const mergedPatch: Patch = { ...patch }
     if (patch.nursingData && target?.nursingData) {
       mergedPatch.nursingData = { ...target.nursingData, ...patch.nursingData }
     }
     await updateAssessment(activeAssessmentId, mergedPatch)
-    alert('量表已成功儲存！')
+    showSaveMsg('量表已成功儲存！')
   }
 
   const createAssessmentRecord = async () => {
@@ -64,11 +76,10 @@ export default function AssessmentsPage() {
     setActiveAssessmentAt(record.createdAt)
   }
 
-  if ((resident?.id ?? null) !== prevResidentId) {
-    setPrevResidentId(resident?.id ?? null)
-    if (activeAssessmentId !== null) setActiveAssessmentId(null)
-    if (activeAssessmentAt !== null) setActiveAssessmentAt(null)
-  }
+  useEffect(() => {
+    setActiveAssessmentId(null)
+    setActiveAssessmentAt(null)
+  }, [resident?.id])
 
   const downloadPatakaAudio = async (audioPath: string, audioFileName?: string) => {
     try {
@@ -86,9 +97,9 @@ export default function AssessmentsPage() {
   }
 
   // 登出功能
-  const handleLogout = () => {
-    localStorage.clear()
-    window.location.href = '/login'
+  const handleLogout = async () => {
+    await signOut()
+    navigate('/login', { replace: true })
   }
 
   // 導航選項
@@ -280,7 +291,7 @@ export default function AssessmentsPage() {
             </div>
 
             {/* 量表內容區塊 */}
-            <section className="card" key={resident.id}>
+            <section className="card">
               <div className="card__title" style={{ fontSize: '20px', marginBottom: '20px' }}>本次評估輸入</div>
               <div style={{
                 display: 'flex',
@@ -298,28 +309,48 @@ export default function AssessmentsPage() {
                   <div>
                     {activeAssessmentAt
                       ? `已建立：${formatDateTime(activeAssessmentAt)}`
-                      : '尚未建立，請先點「新增紀錄」'}
+                      : '點「儲存評估」將自動建立本次評估紀錄，或手動點右側按鈕'}
                   </div>
                 </div>
                 <button
                   className="btn"
-                  style={{ padding: '6px 14px', fontSize: '14px' }}
+                  style={{ padding: '6px 14px', fontSize: '14px', opacity: activeAssessmentId ? 0.45 : 1, cursor: activeAssessmentId ? 'not-allowed' : 'pointer' }}
+                  disabled={!!activeAssessmentId}
+                  title={activeAssessmentId ? '本次評估紀錄已建立' : '手動建立新的評估紀錄'}
                   onClick={() => { void createAssessmentRecord() }}
                 >
-                  ➕ 新增紀錄
+                  {activeAssessmentId ? '✅ 紀錄已建立' : '➕ 新增紀錄'}
                 </button>
               </div>
               
-              {tab === 'eat10' ? (
-                <EAT10Form defaultScore={latest?.eat10Score} onSubmit={(d) => savePatch(d)} onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }} />
-              ) : tab === 'mna' ? (
-                <MNAForm defaultScore={latest?.mnaScore} onSubmit={(d) => savePatch(d)} onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }} />
-              ) : tab === 'rsst' ? (
-                <RSSTForm defaultScore={latest?.rsstScore} onSubmit={(d) => savePatch(d)} onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }} />
-              ) : tab === 'nursing' ? (
-                <NursingAssessments onSave={(d) => savePatch({ nursingData: d, notes: d.notes })} onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }} />
-              ) : (
+              {saveMsg && (
+                <div style={{
+                  padding: '10px 16px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px', fontWeight: 500,
+                  backgroundColor: saveMsg.ok ? '#f0fdf4' : '#fef2f2',
+                  border: `1px solid ${saveMsg.ok ? '#bbf7d0' : '#fecaca'}`,
+                  color: saveMsg.ok ? '#166534' : '#991b1b',
+                }}>
+                  {saveMsg.ok ? '✅' : '❌'} {saveMsg.text}
+                </div>
+              )}
+
+              {/* 所有表單保持掛載，以 display 切換，避免切 tab 清空填寫中的資料 */}
+              {/* key={resident.id} 確保切換住民時各表單完整重置 */}
+              <div style={{ display: tab === 'eat10' ? 'block' : 'none' }}>
+                <EAT10Form key={resident.id} defaultScore={latest?.eat10Score} onSubmit={(d) => savePatch(d)} onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }} />
+              </div>
+              <div style={{ display: tab === 'mna' ? 'block' : 'none' }}>
+                <MNAForm key={resident.id} defaultScore={latest?.mnaScore} onSubmit={(d) => savePatch(d)} onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }} />
+              </div>
+              <div style={{ display: tab === 'rsst' ? 'block' : 'none' }}>
+                <RSSTForm key={resident.id} defaultScore={latest?.rsstScore} onSubmit={(d) => savePatch(d)} onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }} />
+              </div>
+              <div style={{ display: tab === 'nursing' ? 'block' : 'none' }}>
+                <NursingAssessments key={resident.id} onSave={(d) => savePatch({ nursingData: { spmsq: d.spmsq }, notes: d.notes })} onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }} />
+              </div>
+              <div style={{ display: tab === 'pataka' ? 'block' : 'none' }}>
                 <PatakaForm
+                  key={resident.id}
                   defaultPataka={latestPataka}
                   allowEdit={canEditPataka}
                   onUploadAudio={(file) => {
@@ -330,7 +361,7 @@ export default function AssessmentsPage() {
                   onSubmit={(patch) => savePatch(patch)}
                   onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }}
                 />
-              )}
+              </div>
             </section>
 
             {/* 歷史紀錄 */}
@@ -361,8 +392,8 @@ export default function AssessmentsPage() {
                         <td>{typeof a.rsstScore === 'number' ? `${a.rsstScore} 次` : '—'}</td>
                         <td>
                           {a.nursingData?.spmsq ? (
-                            <span style={{ fontSize: '14px', color: '#059669', backgroundColor: '#d1fae5', padding: '4px 8px', borderRadius: '12px' }}>
-                              已完成
+                            <span style={{ fontSize: '13px', color: '#059669', backgroundColor: '#d1fae5', padding: '4px 8px', borderRadius: '12px', whiteSpace: 'nowrap' }}>
+                              {a.nursingData.spmsq.result}
                             </span>
                           ) : (
                             '—'

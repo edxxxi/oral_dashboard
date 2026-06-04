@@ -317,23 +317,23 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   // 2. 異步更新住民資料並同步到雲端
   const updateResident = useCallback(async (id: string, patch: Partial<Resident>) => {
-    // 準備要傳給資料庫的格式（轉回下底線）
-    const dbPatch: any = { ...patch };
-    if (patch.bedNo) dbPatch.bed_no = patch.bedNo;
-    if (patch.medicalSummary) dbPatch.medical_summary = patch.medicalSummary;
-    if (patch.oralCheckNotes) dbPatch.oral_check_notes = patch.oralCheckNotes;
-    
-    // 刪除前端專用的名稱以免資料庫報錯
-    delete dbPatch.bedNo;
-    delete dbPatch.medicalSummary;
-    delete dbPatch.oralCheckNotes;
+    const dbPatch: Record<string, unknown> = {}
+    if (patch.name !== undefined) dbPatch.name = patch.name
+    if (patch.age !== undefined) dbPatch.age = patch.age
+    if (patch.dob !== undefined) dbPatch.dob = patch.dob
+    if (patch.gender !== undefined) dbPatch.gender = patch.gender
+    if (patch.bedNo !== undefined) dbPatch.bed_no = patch.bedNo
+    if (patch.medicalSummary !== undefined) dbPatch.medical_summary = patch.medicalSummary
+    if (patch.oralCheckNotes !== undefined) dbPatch.oral_check_notes = patch.oralCheckNotes
+    if (patch.dietStatus !== undefined) dbPatch.diet_status = patch.dietStatus
+    if (patch.attachments !== undefined) dbPatch.attachments = patch.attachments
 
-    const { error } = await (supabase.from('residents') as any).update(dbPatch).eq('id', id);
-    
+    const { error } = await (supabase.from('residents') as any).update(dbPatch).eq('id', id)
+
     if (error) {
-      alert('雲端更新失敗: ' + error.message);
+      alert('雲端更新失敗: ' + error.message)
     } else {
-      dispatch({ type: 'update_resident_local', id, patch });
+      dispatch({ type: 'update_resident_local', id, patch })
     }
   }, [dispatch])
 

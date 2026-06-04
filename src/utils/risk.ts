@@ -53,8 +53,8 @@ export function computeRiskLevel(a?: AssessmentRecord): RiskLevel {
   // 5) 體重：< 45kg 視為未達標
   if (typeof a.weightKg === 'number' && a.weightKg < 45) score += 1
 
-  if (score > 4) return 'high'
-  if (score === 3) return 'medium'
+  if (score >= 4) return 'high'
+  if (score >= 2) return 'medium'
   return 'low'
 }
 

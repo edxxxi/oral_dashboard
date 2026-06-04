@@ -5,7 +5,7 @@ import { useStore } from '../store/store'
 import { computeRiskLevel } from '../utils/risk'
 
 export default function DashboardPage() {
-  const { user } = useAuth()
+  const { user, signOut } = useAuth()
   const { state, dispatch } = useStore()
   const { residents, assessments } = state
   const navigate = useNavigate()
@@ -13,10 +13,9 @@ export default function DashboardPage() {
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [hoveredRisk, setHoveredRisk] = useState<'high' | 'medium' | 'low' | null>(null)
 
-  const handleLogout = () => {
-    // 清除前端 prototype 暫存的登入狀態並重整/導向登入頁
-    localStorage.clear()
-    window.location.href = '/login'
+  const handleLogout = async () => {
+    await signOut()
+    navigate('/login', { replace: true })
   }
 
   // 原有的 5 個分頁功能
