@@ -37,7 +37,6 @@ export default function ReportPage() {
       .sort((a, b) => (a[0] > b[0] ? 1 : -1))
       .map(([monthKey, a]) => ({
         month: monthKey,
-        weight: typeof a.weightKg === 'number' ? a.weightKg : null,
         risk: computeRiskLevel(a) === 'high' ? 3 : computeRiskLevel(a) === 'medium' ? 2 : 1,
       }))
   }, [assessments])
@@ -233,13 +232,10 @@ export default function ReportPage() {
                   <LineChart data={trend} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
                     <XAxis dataKey="month" stroke="#6b7280" tick={{ fill: '#4b5563' }} tickMargin={12} />
-                    <YAxis yAxisId="left" domain={['auto', 'auto']} stroke="#3b82f6" tick={{ fill: '#3b82f6' }} />
-                    <YAxis yAxisId="right" orientation="right" domain={[0.5, 3.5]} ticks={[1, 2, 3]} stroke="#ef4444" tick={{ fill: '#ef4444' }} tickFormatter={(val) => val === 1 ? '低' : val === 2 ? '中' : '高'} />
+                    <YAxis domain={[0.5, 3.5]} ticks={[1, 2, 3]} stroke="#ef4444" tick={{ fill: '#ef4444' }} tickFormatter={(val) => val === 1 ? '低' : val === 2 ? '中' : '高'} />
                     <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }} />
                     <Legend verticalAlign="top" height={36} />
-                    {/* 加入顯眼的資料點 dot */}
-                    <Line yAxisId="left" type="monotone" dataKey="weight" name="體重 (kg)" stroke="#3b82f6" strokeWidth={3} dot={{ r: 6, fill: '#ffffff', strokeWidth: 2 }} activeDot={{ r: 8, fill: '#3b82f6' }} />
-                    <Line yAxisId="right" type="linear" dataKey="risk" name="AI 風險 (低/中/高)" stroke="#ef4444" strokeWidth={3} dot={{ r: 6, fill: '#ffffff', strokeWidth: 2 }} activeDot={{ r: 8, fill: '#ef4444' }} />
+                    <Line type="linear" dataKey="risk" name="AI 風險 (低/中/高)" stroke="#ef4444" strokeWidth={3} dot={{ r: 6, fill: '#ffffff', strokeWidth: 2 }} activeDot={{ r: 8, fill: '#ef4444' }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>

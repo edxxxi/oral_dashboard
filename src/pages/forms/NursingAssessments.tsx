@@ -3,9 +3,10 @@ import { useState, useMemo } from 'react';
 interface AssessmentProps {
   onSave: (assessmentData: any) => void;
   onSwitchResident?: () => void;
+  defaultNotes?: string;
 }
 
-export default function NursingAssessments({ onSave, onSwitchResident }: AssessmentProps) {
+export default function NursingAssessments({ onSave, onSwitchResident, defaultNotes }: AssessmentProps) {
   // ==========================================
   // SPMSQ 狀態與邏輯
   // ==========================================
@@ -60,7 +61,7 @@ export default function NursingAssessments({ onSave, onSwitchResident }: Assessm
     return results.severe;
   }, [spmsqErrors.length, education]);
 
-  const [notes, setNotes] = useState('');
+  const [notes, setNotes] = useState(defaultNotes ?? '');
 
   const handleSave = () => {
     onSave({

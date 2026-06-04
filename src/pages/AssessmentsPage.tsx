@@ -28,10 +28,12 @@ export default function AssessmentsPage() {
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [activeAssessmentId, setActiveAssessmentId] = useState<string | null>(null)
   const [activeAssessmentAt, setActiveAssessmentAt] = useState<string | null>(null)
+  const [editingRecord, setEditingRecord] = useState<AssessmentRecord | null>(null)
   const [saveMsg, setSaveMsg] = useState<{ text: string; ok: boolean } | null>(null)
 
   const risk = useMemo(() => computeRiskLevel(latest), [latest])
-  const latestPataka = assessments[0]?.nursingData?.pataka
+  const defaultRecord = editingRecord ?? latest
+  const latestPataka = defaultRecord?.nursingData?.pataka
 
   const showSaveMsg = (text: string, ok = true) => {
     setSaveMsg({ text, ok })
@@ -76,9 +78,23 @@ export default function AssessmentsPage() {
     setActiveAssessmentAt(record.createdAt)
   }
 
+  const startEditing = (record: AssessmentRecord) => {
+    setActiveAssessmentId(record.id)
+    setActiveAssessmentAt(record.createdAt)
+    setEditingRecord(record)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const cancelEditing = () => {
+    setActiveAssessmentId(null)
+    setActiveAssessmentAt(null)
+    setEditingRecord(null)
+  }
+
   useEffect(() => {
     setActiveAssessmentId(null)
     setActiveAssessmentAt(null)
+    setEditingRecord(null)
   }, [resident?.id])
 
   const downloadPatakaAudio = async (audioPath: string, audioFileName?: string) => {
@@ -300,27 +316,41 @@ export default function AssessmentsPage() {
                 gap: '16px',
                 padding: '12px 16px',
                 borderRadius: '8px',
-                border: '1px solid #e5e7eb',
-                backgroundColor: '#f9fafb',
+                border: `1px solid ${editingRecord ? '#fbbf24' : '#e5e7eb'}`,
+                backgroundColor: editingRecord ? '#fffbeb' : '#f9fafb',
                 marginBottom: '16px',
               }}>
                 <div style={{ color: '#4b5563', fontSize: '14px' }}>
-                  <div style={{ fontWeight: 600, color: '#111827', marginBottom: '4px' }}>本次評估紀錄</div>
+                  <div style={{ fontWeight: 600, color: editingRecord ? '#92400e' : '#111827', marginBottom: '4px' }}>
+                    {editingRecord ? '✏️ 編輯歷史紀錄' : '本次評估紀錄'}
+                  </div>
                   <div>
-                    {activeAssessmentAt
-                      ? `已建立：${formatDateTime(activeAssessmentAt)}`
-                      : '點「儲存評估」將自動建立本次評估紀錄，或手動點右側按鈕'}
+                    {editingRecord
+                      ? `編輯中：${formatDateTime(editingRecord.createdAt)}`
+                      : activeAssessmentAt
+                        ? `已建立：${formatDateTime(activeAssessmentAt)}`
+                        : '點「儲存評估」將自動建立本次評估紀錄，或手動點右側按鈕'}
                   </div>
                 </div>
-                <button
-                  className="btn"
-                  style={{ padding: '6px 14px', fontSize: '14px', opacity: activeAssessmentId ? 0.45 : 1, cursor: activeAssessmentId ? 'not-allowed' : 'pointer' }}
-                  disabled={!!activeAssessmentId}
-                  title={activeAssessmentId ? '本次評估紀錄已建立' : '手動建立新的評估紀錄'}
-                  onClick={() => { void createAssessmentRecord() }}
-                >
-                  {activeAssessmentId ? '✅ 紀錄已建立' : '➕ 新增紀錄'}
-                </button>
+                {editingRecord ? (
+                  <button
+                    className="btn btn--sub"
+                    style={{ padding: '6px 14px', fontSize: '14px' }}
+                    onClick={cancelEditing}
+                  >
+                    ✕ 取消編輯
+                  </button>
+                ) : (
+                  <button
+                    className="btn"
+                    style={{ padding: '6px 14px', fontSize: '14px', opacity: activeAssessmentId ? 0.45 : 1, cursor: activeAssessmentId ? 'not-allowed' : 'pointer' }}
+                    disabled={!!activeAssessmentId}
+                    title={activeAssessmentId ? '本次評估紀錄已建立' : '手動建立新的評估紀錄'}
+                    onClick={() => { void createAssessmentRecord() }}
+                  >
+                    {activeAssessmentId ? '✅ 紀錄已建立' : '➕ 新增紀錄'}
+                  </button>
+                )}
               </div>
               
               {saveMsg && (
@@ -337,20 +367,20 @@ export default function AssessmentsPage() {
               {/* 所有表單保持掛載，以 display 切換，避免切 tab 清空填寫中的資料 */}
               {/* key={resident.id} 確保切換住民時各表單完整重置 */}
               <div style={{ display: tab === 'eat10' ? 'block' : 'none' }}>
-                <EAT10Form key={resident.id} defaultScore={latest?.eat10Score} onSubmit={(d) => savePatch(d)} onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }} />
+                <EAT10Form key={`${resident.id}-${activeAssessmentId ?? 'new'}`} defaultScore={defaultRecord?.eat10Score} onSubmit={(d) => savePatch(d)} onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }} />
               </div>
               <div style={{ display: tab === 'mna' ? 'block' : 'none' }}>
-                <MNAForm key={resident.id} defaultScore={latest?.mnaScore} onSubmit={(d) => savePatch(d)} onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }} />
+                <MNAForm key={`${resident.id}-${activeAssessmentId ?? 'new'}`} defaultScore={defaultRecord?.mnaScore} onSubmit={(d) => savePatch(d)} onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }} />
               </div>
               <div style={{ display: tab === 'rsst' ? 'block' : 'none' }}>
-                <RSSTForm key={resident.id} defaultScore={latest?.rsstScore} onSubmit={(d) => savePatch(d)} onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }} />
+                <RSSTForm key={`${resident.id}-${activeAssessmentId ?? 'new'}`} defaultScore={defaultRecord?.rsstScore} onSubmit={(d) => savePatch(d)} onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }} />
               </div>
               <div style={{ display: tab === 'nursing' ? 'block' : 'none' }}>
-                <NursingAssessments key={resident.id} onSave={(d) => savePatch({ nursingData: { spmsq: d.spmsq }, notes: d.notes })} onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }} />
+                <NursingAssessments key={`${resident.id}-${activeAssessmentId ?? 'new'}`} defaultNotes={defaultRecord?.notes ?? ''} onSave={(d) => savePatch({ nursingData: { spmsq: d.spmsq }, notes: d.notes })} onSwitchResident={() => { dispatch({ type: 'select_resident', id: null }); window.scrollTo(0, 0); }} />
               </div>
               <div style={{ display: tab === 'pataka' ? 'block' : 'none' }}>
                 <PatakaForm
-                  key={resident.id}
+                  key={`${resident.id}-${activeAssessmentId ?? 'new'}`}
                   defaultPataka={latestPataka}
                   allowEdit={canEditPataka}
                   onUploadAudio={(file) => {
@@ -378,11 +408,12 @@ export default function AssessmentsPage() {
                       <th style={{ width: 140 }}>認知功能評估</th>
                       <th style={{ width: 220 }}>Pataka 聲音評估</th>
                       <th style={{ minWidth: 100 }}>備註</th>
+                      <th style={{ width: 80 }}></th>
                     </tr>
                   </thead>
                   <tbody>
                     {assessments.length === 0 && (
-                      <tr><td colSpan={7} style={{ textAlign: 'center', color: '#6b7280', padding: '16px' }}>尚無歷史紀錄</td></tr>
+                      <tr><td colSpan={8} style={{ textAlign: 'center', color: '#6b7280', padding: '16px' }}>尚無歷史紀錄</td></tr>
                     )}
                     {assessments.slice(0, 10).map((a) => (
                       <tr key={a.id}>
@@ -434,6 +465,16 @@ export default function AssessmentsPage() {
                           )}
                         </td>
                         <td className="muted">{a.notes ?? '無'}</td>
+                        <td>
+                          <button
+                            className="btn btn--sub"
+                            style={{ padding: '4px 10px', fontSize: '13px', opacity: editingRecord?.id === a.id ? 0.45 : 1, cursor: editingRecord?.id === a.id ? 'not-allowed' : 'pointer' }}
+                            disabled={editingRecord?.id === a.id}
+                            onClick={() => startEditing(a)}
+                          >
+                            {editingRecord?.id === a.id ? '編輯中' : '編輯'}
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
