@@ -117,37 +117,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
-      const { data } = await supabase.auth.getSession()
-      const sessionUser = data.session?.user
-      if (!sessionUser) {
-        if (!cancelled) {
-          setUser(null)
-          setStaffAccounts([])
-          setLoading(false)
+      try {
+        const { data } = await supabase.auth.getSession()
+        const sessionUser = data.session?.user
+        if (!sessionUser) {
+          if (!cancelled) {
+            setUser(null)
+            setStaffAccounts([])
+          }
+          return
         }
-        return
-      }
 
-      const staffRow = await loadMyStaffRow(sessionUser.id)
-      if (!staffRow || !staffRow.active) {
-        await supabase.auth.signOut()
-        if (!cancelled) {
-          setUser(null)
-          setStaffAccounts([])
-          setLoading(false)
+        const staffRow = await loadMyStaffRow(sessionUser.id)
+        if (!staffRow || !staffRow.active) {
+          await supabase.auth.signOut()
+          if (!cancelled) {
+            setUser(null)
+            setStaffAccounts([])
+          }
+          return
         }
-        return
-      }
 
-      if (!cancelled) {
-        setUser({
-          id: staffRow.id,
-          email: staffRow.email,
-          name: staffRow.name,
-          role: staffRow.role,
-        })
-        void loadStaffAccountsForRole(staffRow.role)
-        setLoading(false)
+        if (!cancelled) {
+          setUser({
+            id: staffRow.id,
+            email: staffRow.email,
+            name: staffRow.name,
+            role: staffRow.role,
+          })
+          void loadStaffAccountsForRole(staffRow.role)
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
       }
     }
 
