@@ -29,14 +29,10 @@ export default function ReportPage() {
   }, [recommended])
 
   const trend = useMemo(() => {
-    const byMonth = new Map<string, typeof latest>()
-    for (const a of [...assessments].reverse()) {
-      byMonth.set(a.monthKey, a)
-    }
-    return [...byMonth.entries()]
-      .sort((a, b) => (a[0] > b[0] ? 1 : -1))
-      .map(([monthKey, a]) => ({
-        month: monthKey,
+    return [...assessments]
+      .reverse()
+      .map((a, i) => ({
+        month: `第${i + 1}次 (${a.createdAt.slice(5, 10).replace('-', '/')})`,
         risk: computeRiskLevel(a) === 'high' ? 3 : computeRiskLevel(a) === 'medium' ? 2 : 1,
       }))
   }, [assessments])
@@ -319,7 +315,7 @@ export default function ReportPage() {
               <div style={{ fontSize: '20px', fontWeight: 700, color: '#111827', marginBottom: '24px' }}>歷史趨勢變化</div>
               {trend.length < 2 ? (
                 <div style={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '15px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
-                  資料筆數不足，至少需要 2 個月的評估才能顯示趨勢
+                  資料筆數不足，至少需要 2 筆評估才能顯示趨勢
                 </div>
               ) : (
                 <div style={{ height: 320, width: '100%' }}>
