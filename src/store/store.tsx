@@ -49,6 +49,7 @@ type Action =
   | { type: 'delete_resident_local'; id: string }
   | { type: 'add_assessment_local'; record: AssessmentRecord }
   | { type: 'update_assessment_local'; id: string; patch: Partial<AssessmentRecord> }
+  | { type: 'delete_assessment_local'; id: string }
   | { type: 'add_attachment'; residentId: string; name: string }
   | { type: 'add_staff'; staff: StaffAccount }
   | { type: 'toggle_staff'; id: string }
@@ -92,6 +93,11 @@ function reducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         assessments: state.assessments.map((a) => (a.id === action.id ? { ...a, ...action.patch } : a)),
+      }
+    case 'delete_assessment_local':
+      return {
+        ...state,
+        assessments: state.assessments.filter((a) => a.id !== action.id),
       }
     case 'add_attachment':
       return {
@@ -154,6 +160,7 @@ type Store = {
   updateResident: (id: string, patch: Partial<Resident>) => Promise<void>
   addAssessment: (residentId: string, patch: Partial<AssessmentRecord>) => Promise<AssessmentRecord | null>
   updateAssessment: (assessmentId: string, patch: Partial<AssessmentRecord>) => Promise<boolean>
+  deleteAssessment: (assessmentId: string) => Promise<boolean>
   // 新增：將住民寫入雲端資料庫
   addResident: (resident: Partial<Resident>, attachmentFiles?: File[]) => Promise<void>
   deleteResident: (residentId: string) => Promise<void>
@@ -418,6 +425,20 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     return true
   }, [dispatch])
 
+  const deleteAssessment = useCallback(async (assessmentId: string): Promise<boolean> => {
+    const { error } = await (supabase.from('assessment_records') as any)
+      .delete()
+      .eq('id', assessmentId)
+
+    if (error) {
+      alert('刪除評估失敗: ' + error.message)
+      return false
+    }
+
+    dispatch({ type: 'delete_assessment_local', id: assessmentId })
+    return true
+  }, [dispatch])
+
   const uploadResidentAttachments = useCallback(async (residentId: string, files: File[]) => {
     const uploaded: ResidentAttachment[] = []
     for (const file of files) {
@@ -584,12 +605,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     updateResident, 
     addAssessment,
     updateAssessment,
+    deleteAssessment,
     addResident,
     deleteResident,
     uploadPatakaAudio,
     getPatakaAudioDownloadUrl,
     getResidentAttachmentUrl
-  }), [state, loading, updateResident, addAssessment, updateAssessment, addResident, deleteResident, uploadPatakaAudio, getPatakaAudioDownloadUrl, getResidentAttachmentUrl])
+  }), [state, loading, updateResident, addAssessment, updateAssessment, deleteAssessment, addResident, deleteResident, uploadPatakaAudio, getPatakaAudioDownloadUrl, getResidentAttachmentUrl])
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
 }

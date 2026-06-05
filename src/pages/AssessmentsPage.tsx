@@ -5,6 +5,7 @@ import { useAuth } from '../auth'
 import { formatDateTime } from '../utils/date'
 import { computeRiskLevel, riskLabel } from '../utils/risk'
 import { RiskLight } from '../components/RiskLight'
+import { isImageAttachment } from '../utils/attachments'
 import { MNAForm } from './forms/MNAForm'
 import { EAT10Form } from './forms/EAT10Form'
 import { RSSTForm } from './forms/ChewingForm'
@@ -14,7 +15,7 @@ import type { AssessmentRecord } from '../store/types'
 
 export default function AssessmentsPage() {
   const resident = useSelectedResident()
-  const { state, dispatch, addAssessment, updateAssessment, uploadPatakaAudio, getPatakaAudioDownloadUrl } = useStore()
+  const { state, dispatch, addAssessment, updateAssessment, deleteAssessment, uploadPatakaAudio, getPatakaAudioDownloadUrl, getResidentAttachmentUrl } = useStore()
   const { user, can, signOut } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -30,10 +31,13 @@ export default function AssessmentsPage() {
   const [activeAssessmentAt, setActiveAssessmentAt] = useState<string | null>(null)
   const [editingRecord, setEditingRecord] = useState<AssessmentRecord | null>(null)
   const [saveMsg, setSaveMsg] = useState<{ text: string; ok: boolean } | null>(null)
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null)
 
   const risk = useMemo(() => computeRiskLevel(latest), [latest])
   const defaultRecord = editingRecord ?? latest
   const latestPataka = defaultRecord?.nursingData?.pataka
+  const photoAttachment = resident?.attachments.find((a) => isImageAttachment(a.name, a.mimeType))
+  const photoUrl = photoAttachment?.url ?? photoPreviewUrl ?? resident?.photoUrl
 
   const showSaveMsg = (text: string, ok = true) => {
     setSaveMsg({ text, ok })
@@ -100,6 +104,35 @@ export default function AssessmentsPage() {
     setActiveAssessmentAt(null)
     setEditingRecord(null)
   }, [resident?.id])
+
+  useEffect(() => {
+    let active = true
+    const loadPhotoUrl = async () => {
+      if (!resident || !photoAttachment?.path || photoAttachment.url) {
+        setPhotoPreviewUrl(null)
+        return
+      }
+      try {
+        const url = await getResidentAttachmentUrl(photoAttachment.path)
+        if (!active) return
+        setPhotoPreviewUrl(url)
+        dispatch({
+          type: 'update_resident_local',
+          id: resident.id,
+          patch: {
+            attachments: resident.attachments.map((a) => (a.id === photoAttachment.id ? { ...a, url } : a)),
+          },
+        })
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : '取得附件連結失敗'
+        console.warn(`照片連結取得失敗: ${detail}`)
+      }
+    }
+    void loadPhotoUrl()
+    return () => {
+      active = false
+    }
+  }, [dispatch, getResidentAttachmentUrl, photoAttachment?.id, photoAttachment?.path, photoAttachment?.url, resident])
 
   const downloadPatakaAudio = async (audioPath: string, audioFileName?: string) => {
     try {
@@ -287,7 +320,17 @@ export default function AssessmentsPage() {
               
               {/* 照片佔位 */}
               <div style={{ width: '90px', height: '110px', backgroundColor: '#f3f4f6', borderRadius: '8px', border: '1px dashed #d1d5db', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontSize: '40px' }}>👤</span>
+                {photoUrl ? (
+                  <img
+                    src={photoUrl}
+                    alt={`${resident.name} 照片`}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '6px' }}
+                  />
+                ) : photoAttachment ? (
+                  <span style={{ fontSize: '12px', color: '#6b7280', textAlign: 'center', padding: '4px' }}>載入照片...</span>
+                ) : (
+                  <span style={{ fontSize: '40px' }}>👤</span>
+                )}
               </div>
             </div>
 
@@ -470,14 +513,30 @@ export default function AssessmentsPage() {
                         </td>
                         <td className="muted">{a.notes ?? '無'}</td>
                         <td>
-                          <button
-                            className="btn btn--sub"
-                            style={{ padding: '4px 10px', fontSize: '13px', opacity: editingRecord?.id === a.id ? 0.45 : 1, cursor: editingRecord?.id === a.id ? 'not-allowed' : 'pointer' }}
-                            disabled={editingRecord?.id === a.id}
-                            onClick={() => startEditing(a)}
-                          >
-                            {editingRecord?.id === a.id ? '編輯中' : '編輯'}
-                          </button>
+                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            <button
+                              className="btn btn--sub"
+                              style={{ padding: '4px 10px', fontSize: '13px', opacity: editingRecord?.id === a.id ? 0.45 : 1, cursor: editingRecord?.id === a.id ? 'not-allowed' : 'pointer' }}
+                              disabled={editingRecord?.id === a.id}
+                              onClick={() => startEditing(a)}
+                            >
+                              {editingRecord?.id === a.id ? '編輯中' : '編輯'}
+                            </button>
+                            <button
+                              className="btn btn--sub"
+                              style={{ padding: '4px 10px', fontSize: '13px', color: '#b91c1c' }}
+                              onClick={async () => {
+                                const ok = window.confirm('確定刪除此筆評估紀錄？此操作無法復原。')
+                                if (!ok) return
+                                const deleted = await deleteAssessment(a.id)
+                                if (deleted && (editingRecord?.id === a.id || activeAssessmentId === a.id)) {
+                                  cancelEditing()
+                                }
+                              }}
+                            >
+                              刪除
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}

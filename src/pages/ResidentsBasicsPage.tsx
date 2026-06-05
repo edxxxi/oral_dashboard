@@ -3,9 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useSelectedResident, useStore } from '../store/store'
 import { useAuth } from '../auth'
 import { formatDob } from '../utils/date'
-
-const isImageAttachment = (name: string, mimeType?: string) =>
-  Boolean(mimeType?.startsWith('image/')) || Boolean(name.toLowerCase().match(/\.(jpg|jpeg|png)$/))
+import { isImageAttachment } from '../utils/attachments'
 
 export default function ResidentsBasicsPage() {
   const resident = useSelectedResident()
@@ -24,6 +22,7 @@ export default function ResidentsBasicsPage() {
   const [newBedNo, setNewBedNo] = useState('')
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [medicalFiles, setMedicalFiles] = useState<File[]>([])
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null)
 
   const canDeleteResident = can('delete:resident')
 
@@ -125,7 +124,36 @@ export default function ResidentsBasicsPage() {
   }
 
   const photoAttachment = resident?.attachments.find((a) => isImageAttachment(a.name, a.mimeType))
-  const photoUrl = photoAttachment?.url
+  const photoUrl = photoAttachment?.url ?? photoPreviewUrl ?? resident?.photoUrl
+
+  useEffect(() => {
+    let active = true
+    const loadPhotoUrl = async () => {
+      if (!resident || !photoAttachment?.path || photoAttachment.url) {
+        setPhotoPreviewUrl(null)
+        return
+      }
+      try {
+        const url = await getResidentAttachmentUrl(photoAttachment.path)
+        if (!active) return
+        setPhotoPreviewUrl(url)
+        dispatch({
+          type: 'update_resident_local',
+          id: resident.id,
+          patch: {
+            attachments: resident.attachments.map((a) => (a.id === photoAttachment.id ? { ...a, url } : a)),
+          },
+        })
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : '取得附件連結失敗'
+        console.warn(`照片連結取得失敗: ${detail}`)
+      }
+    }
+    void loadPhotoUrl()
+    return () => {
+      active = false
+    }
+  }, [dispatch, getResidentAttachmentUrl, photoAttachment?.id, photoAttachment?.path, photoAttachment?.url, resident])
 
   return (
     <div style={{
@@ -434,13 +462,7 @@ export default function ResidentsBasicsPage() {
                         style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '6px' }}
                       />
                     ) : photoAttachment ? (
-                      <button
-                        className="btn btn--sub"
-                        style={{ padding: '6px 10px', fontSize: '12px' }}
-                        onClick={() => handleOpenAttachment(resident.id, photoAttachment)}
-                      >
-                        檢視照片
-                      </button>
+                      <span style={{ fontSize: '12px', color: '#6b7280', textAlign: 'center', padding: '4px' }}>載入照片...</span>
                     ) : (
                       <span style={{ fontSize: '64px' }}>👤</span>
                     )}
