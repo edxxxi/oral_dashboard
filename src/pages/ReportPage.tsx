@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, Legend } from 'recharts'
 import { RiskLight } from '../components/RiskLight'
@@ -31,6 +31,7 @@ export default function ReportPage() {
   const trend = useMemo(() => {
     return [...assessments]
       .reverse()
+      .filter((a) => a && a.createdAt)
       .map((a, i) => ({
         month: `第${i + 1}次 (${a.createdAt.slice(5, 10).replace('-', '/')})`,
         risk: computeRiskLevel(a) === 'high' ? 3 : computeRiskLevel(a) === 'medium' ? 2 : 1,

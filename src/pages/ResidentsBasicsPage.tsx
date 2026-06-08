@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useSelectedResident, useStore } from '../store/store'
 import { useAuth } from '../auth'
 import { formatDob } from '../utils/date'
-import { isImageAttachment } from '../utils/attachments'
+import { findPhotoAttachment, isImageAttachment } from '../utils/attachments'
 
 export default function ResidentsBasicsPage() {
   const resident = useSelectedResident()
@@ -123,7 +123,7 @@ export default function ResidentsBasicsPage() {
     }
   }
 
-  const photoAttachment = resident?.attachments.find((a) => isImageAttachment(a.name, a.mimeType))
+  const photoAttachment = resident ? findPhotoAttachment(resident.attachments) : undefined
   const photoUrl = photoAttachment?.url ?? photoPreviewUrl ?? resident?.photoUrl
 
   useEffect(() => {
@@ -493,15 +493,16 @@ export default function ResidentsBasicsPage() {
                               >
                                 檢視
                               </a>
-                            ) : (
+                            ) : a.path ? (
                               <button
                                 className="btn btn--sub"
                                 style={{ padding: '4px 10px', fontSize: '12px' }}
                                 onClick={() => handleOpenAttachment(resident.id, a)}
-                                disabled={!a.path}
                               >
                                 檢視
                               </button>
+                            ) : (
+                              <span style={{ fontSize: '12px', color: '#9ca3af' }} title="舊資料僅記錄檔名，請重新上傳">無法檢視</span>
                             )}
                           </div>
                         )

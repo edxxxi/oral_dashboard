@@ -253,6 +253,19 @@ textarea:disabled {
   min-width: 760px;
 }
 
+.table--sticky-actions th:last-child,
+.table--sticky-actions td:last-child {
+  position: sticky;
+  right: 0;
+  background: #ffffff;
+  box-shadow: -4px 0 8px rgba(0, 0, 0, 0.06);
+  z-index: 1;
+}
+
+.table--sticky-actions th:last-child {
+  background: #f9fafb;
+}
+
 .table th,
 .table td {
   text-align: left;

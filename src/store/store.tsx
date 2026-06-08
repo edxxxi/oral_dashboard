@@ -171,78 +171,80 @@ type Store = {
 
 const StoreContext = createContext<Store | null>(null)
 
+function normalizeAttachments(raw: unknown): Resident['attachments'] {
+  if (!raw) return []
+  let value: unknown = raw
+  if (typeof raw === 'string') {
+    try {
+      value = JSON.parse(raw)
+    } catch {
+      return []
+    }
+  }
+  if (!Array.isArray(value)) return []
+
+  return value
+    .map((item) => {
+      if (typeof item === 'string') {
+        return { id: makeId('att'), name: item, addedAt: todayISO() }
+      }
+      if (item && typeof item === 'object') {
+        const record = item as Record<string, unknown>
+        const name = typeof record.name === 'string' ? record.name : null
+        if (!name) return null
+        const path =
+          typeof record.path === 'string'
+            ? record.path
+            : typeof record.storagePath === 'string'
+              ? record.storagePath
+              : undefined
+        const mimeType = typeof record.mimeType === 'string' ? record.mimeType : undefined
+        const size = typeof record.size === 'number' ? record.size : undefined
+        const url = typeof record.url === 'string' ? record.url : undefined
+        return {
+          id: typeof record.id === 'string' ? record.id : makeId('att'),
+          name,
+          addedAt: typeof record.addedAt === 'string' ? record.addedAt : todayISO(),
+          path,
+          mimeType,
+          size,
+          url,
+        }
+      }
+      return null
+    })
+    .filter((item): item is Resident['attachments'][number] => Boolean(item))
+}
+
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState)
   const [loading, setLoading] = useState(true)
-  const normalizeAttachments = (raw: unknown): Resident['attachments'] => {
-    if (!raw) return []
-    let value: unknown = raw
-    if (typeof raw === 'string') {
-      try {
-        value = JSON.parse(raw)
-      } catch {
-        return []
-      }
-    }
-    if (!Array.isArray(value)) return []
 
-    return value
-      .map((item) => {
-        if (typeof item === 'string') {
-          return { id: makeId('att'), name: item, addedAt: todayISO() }
-        }
-        if (item && typeof item === 'object') {
-          const record = item as Record<string, unknown>
-          const name = typeof record.name === 'string' ? record.name : null
-          if (!name) return null
-          const path =
-            typeof record.path === 'string'
-              ? record.path
-              : typeof record.storagePath === 'string'
-                ? record.storagePath
-                : undefined
-          const mimeType = typeof record.mimeType === 'string' ? record.mimeType : undefined
-          const size = typeof record.size === 'number' ? record.size : undefined
-          const url = typeof record.url === 'string' ? record.url : undefined
-          return {
-            id: typeof record.id === 'string' ? record.id : makeId('att'),
-            name,
-            addedAt: typeof record.addedAt === 'string' ? record.addedAt : todayISO(),
-            path,
-            mimeType,
-            size,
-            url,
-          }
-        }
-        return null
-      })
-      .filter((item): item is Resident['attachments'][number] => Boolean(item))
-  }
-
-  // 1. 初始化：從 Supabase 抓取所有資料，失敗時使用模擬數據
+  // 登入後才載入資料，並在 SIGNED_IN 時重新載入（確保附件簽名 URL 有效）
   useEffect(() => {
+    let cancelled = false
+
     async function loadData() {
       setLoading(true)
       try {
-        // 檢查是否有 Supabase 環境變數
         const url = import.meta.env.VITE_SUPABASE_URL
         const key = import.meta.env.VITE_SUPABASE_ANON_KEY
-        
+
         if (!url || !key) {
           console.warn('⚠️  Supabase 環境變數未設置，使用模擬數據')
-          dispatch({
-            type: 'set_initial_data',
-            state: makeMockState()
-          })
-          setLoading(false)
+          if (!cancelled) {
+            dispatch({ type: 'set_initial_data', state: makeMockState() })
+          }
           return
         }
 
-        await supabase.auth.getSession()
+        const { data: sessionData } = await supabase.auth.getSession()
+        if (!sessionData.session) return
 
         const mapResidentRow = (r: any): Resident => ({
           ...r,
           bedNo: r.bed_no,
+          photoUrl: r.photo_url,
           medicalSummary: r.medical_summary,
           oralCheckNotes: r.oral_check_notes,
           dietStatus: r.diet_status,
@@ -251,6 +253,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         const mapAssessmentRow = (a: any): AssessmentRecord => ({
           ...a,
           residentId: a.resident_id,
+          createdAt: a.created_at,
           monthKey: a.month_key,
           weightKg: a.weight_kg,
           spmsqErrors: a.spmsq_errors,
@@ -263,7 +266,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           nursingData: a.nursing_data
         } as any)
 
-        // 先載入住民資料，避免登入後主畫面卡在大筆 assessment 查詢
         const resResidents = await (supabase.from('residents') as any).select('*')
         if (resResidents.error) throw resResidents.error
 
@@ -273,13 +275,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             const attachments = await Promise.all(
               r.attachments.map(async (a: ResidentAttachment) => {
                 if (!a.path || a.url) return a
-                const url = await tryCreateResidentAttachmentUrl(a.path)
-                return url ? { ...a, url } : a
+                const signedUrl = await tryCreateResidentAttachmentUrl(a.path)
+                return signedUrl ? { ...a, url: signedUrl } : a
               }),
             )
             return { ...r, attachments }
           }),
         )
+
+        if (cancelled) return
 
         dispatch({
           type: 'set_initial_data',
@@ -292,34 +296,53 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
         setLoading(false)
 
-        // 評估資料改為背景載入，載完再補進 state
-        ;(async () => {
-          const resAssessments = await (supabase.from('assessment_records') as any)
-            .select('*')
-            .order('created_at', { ascending: false })
-          if (resAssessments.error) {
-            console.warn('⚠️  載入 assessment_records 較慢或失敗:', resAssessments.error.message)
-            return
-          }
-          dispatch({
-            type: 'set_assessments_local',
-            assessments: (resAssessments.data || []).map(mapAssessmentRow),
-          })
-        })()
-        return
+        const resAssessments = await (supabase.from('assessment_records') as any)
+          .select('*')
+          .order('created_at', { ascending: false })
+        if (cancelled) return
+        if (resAssessments.error) {
+          console.warn('⚠️  載入 assessment_records 較慢或失敗:', resAssessments.error.message)
+          return
+        }
+        dispatch({
+          type: 'set_assessments_local',
+          assessments: (resAssessments.data || []).map(mapAssessmentRow),
+        })
       } catch (error) {
         console.error('❌ 載入雲端資料失敗:', error)
-        console.warn('📦 改用模擬數據進行本地測試')
-        // 失敗時使用模擬數據
-        dispatch({
-          type: 'set_initial_data',
-          state: makeMockState()
-        })
+        if (!cancelled) {
+          console.warn('📦 改用模擬數據進行本地測試')
+          dispatch({ type: 'set_initial_data', state: makeMockState() })
+        }
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
-    loadData()
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (cancelled) return
+
+      if (session?.user && (event === 'INITIAL_SESSION' || event === 'SIGNED_IN')) {
+        await loadData()
+        return
+      }
+
+      if (event === 'INITIAL_SESSION' || event === 'SIGNED_OUT') {
+        const url = import.meta.env.VITE_SUPABASE_URL
+        const key = import.meta.env.VITE_SUPABASE_ANON_KEY
+        if (!url || !key) {
+          dispatch({ type: 'set_initial_data', state: makeMockState() })
+        } else {
+          dispatch({ type: 'set_initial_data', state: { ...initialState } })
+        }
+        setLoading(false)
+      }
+    })
+
+    return () => {
+      cancelled = true
+      authListener.subscription.unsubscribe()
+    }
   }, [])
 
   // 2. 異步更新住民資料並同步到雲端
@@ -329,6 +352,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     if (patch.age !== undefined) dbPatch.age = patch.age
     if (patch.dob !== undefined) dbPatch.dob = patch.dob
     if (patch.gender !== undefined) dbPatch.gender = patch.gender
+    if (patch.photoUrl !== undefined) dbPatch.photo_url = patch.photoUrl
     if (patch.bedNo !== undefined) dbPatch.bed_no = patch.bedNo
     if (patch.medicalSummary !== undefined) dbPatch.medical_summary = patch.medicalSummary
     if (patch.oralCheckNotes !== undefined) dbPatch.oral_check_notes = patch.oralCheckNotes
@@ -529,6 +553,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const newResident: Resident = {
       ...data[0],
       bedNo: data[0].bed_no,
+      photoUrl: data[0].photo_url,
       medicalSummary: data[0].medical_summary,
       oralCheckNotes: data[0].oral_check_notes,
       dietStatus: data[0].diet_status,

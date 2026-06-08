@@ -21,13 +21,19 @@ const options = [
   { label: '嚴重 (4 分)', value: 4 },
 ]
 
-export function EAT10Form({ onSubmit, onSwitchResident }: { defaultScore?: number; onSubmit: (patch: any) => void; onSwitchResident?: () => void }) {
+export function EAT10Form({ defaultScore, onSubmit, onSwitchResident }: { defaultScore?: number; onSubmit: (patch: any) => void; onSwitchResident?: () => void }) {
   const [answers, setAnswers] = useState<number[]>(Array(10).fill(0))
 
   const totalScore = useMemo(() => answers.reduce((a, b) => a + b, 0), [answers])
+  const hasSavedScore = typeof defaultScore === 'number'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      {hasSavedScore && (
+        <div style={{ backgroundColor: '#f0fdf4', padding: '12px 16px', borderRadius: '8px', border: '1px solid #bbf7d0', color: '#166534', fontSize: '16px' }}>
+          本次評估已儲存 EAT-10 總分：<strong>{defaultScore} 分</strong>（重新填寫後按「儲存評估」可更新）
+        </div>
+      )}
       <div style={{ backgroundColor: '#eff6ff', padding: '16px', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
         <p style={{ margin: 0, color: '#1e3a8a', fontSize: '18px', fontWeight: 500, lineHeight: 1.6 }}>
           💡 說明：請詢問病人過去 <strong>3 個月內</strong> 是否有以下問題。

@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useResidentAssessments, useSelectedResident, useStore } from '../store/store'
 import { useAuth } from '../auth'
 import { formatDateTime } from '../utils/date'
 import { computeRiskLevel, riskLabel } from '../utils/risk'
 import { RiskLight } from '../components/RiskLight'
-import { isImageAttachment } from '../utils/attachments'
+import { findPhotoAttachment } from '../utils/attachments'
 import { MNAForm } from './forms/MNAForm'
 import { EAT10Form } from './forms/EAT10Form'
 import { RSSTForm } from './forms/ChewingForm'
@@ -33,11 +33,40 @@ export default function AssessmentsPage() {
   const [saveMsg, setSaveMsg] = useState<{ text: string; ok: boolean } | null>(null)
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null)
 
+  const activeRecord = useMemo(
+    () => (activeAssessmentId ? assessments.find((a) => a.id === activeAssessmentId) ?? null : null),
+    [activeAssessmentId, assessments],
+  )
   const risk = useMemo(() => computeRiskLevel(latest), [latest])
-  const defaultRecord = editingRecord ?? latest
+  const defaultRecord = editingRecord ?? activeRecord
   const latestPataka = defaultRecord?.nursingData?.pataka
-  const photoAttachment = resident?.attachments.find((a) => isImageAttachment(a.name, a.mimeType))
+  const photoAttachment = resident ? findPhotoAttachment(resident.attachments) : undefined
   const photoUrl = photoAttachment?.url ?? photoPreviewUrl ?? resident?.photoUrl
+
+  const preloadResidentAttachments = useCallback(async (target: typeof resident) => {
+    if (!target) return
+    const nextAttachments = await Promise.all(
+      target.attachments.map(async (a) => {
+        if (!a.path || a.url) return a
+        try {
+          const url = await getResidentAttachmentUrl(a.path)
+          return { ...a, url }
+        } catch (error) {
+          const detail = error instanceof Error ? error.message : '取得附件連結失敗'
+          console.warn(`附件連結取得失敗: ${detail}`)
+          return a
+        }
+      }),
+    )
+    const changed = nextAttachments.some((a, idx) => a.url !== target.attachments[idx]?.url)
+    if (changed) {
+      dispatch({
+        type: 'update_resident_local',
+        id: target.id,
+        patch: { attachments: nextAttachments },
+      })
+    }
+  }, [dispatch, getResidentAttachmentUrl])
 
   const showSaveMsg = (text: string, ok = true) => {
     setSaveMsg({ text, ok })
@@ -84,6 +113,8 @@ export default function AssessmentsPage() {
     }
     setActiveAssessmentId(record.id)
     setActiveAssessmentAt(record.createdAt)
+    setEditingRecord(null)
+    showSaveMsg('已建立本次評估紀錄，請開始填寫量表。')
   }
 
   const startEditing = (record: AssessmentRecord) => {
@@ -103,7 +134,12 @@ export default function AssessmentsPage() {
     setActiveAssessmentId(null)
     setActiveAssessmentAt(null)
     setEditingRecord(null)
+    setSaveMsg(null)
   }, [resident?.id])
+
+  useEffect(() => {
+    void preloadResidentAttachments(resident)
+  }, [resident, preloadResidentAttachments])
 
   useEffect(() => {
     let active = true
@@ -443,9 +479,25 @@ export default function AssessmentsPage() {
 
             {/* 歷史紀錄 */}
             <section className="card">
-              <div className="card__title" style={{ fontSize: '20px', marginBottom: '16px' }}>歷史評估紀錄</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', marginBottom: '16px', flexWrap: 'wrap' }}>
+                <div className="card__title" style={{ fontSize: '20px', margin: 0 }}>歷史評估紀錄</div>
+                {!editingRecord && (
+                  <button
+                    className="btn"
+                    style={{ padding: '6px 14px', fontSize: '14px', opacity: activeAssessmentId ? 0.45 : 1, cursor: activeAssessmentId ? 'not-allowed' : 'pointer' }}
+                    disabled={!!activeAssessmentId}
+                    title={activeAssessmentId ? '本次評估紀錄已建立' : '建立新的評估紀錄'}
+                    onClick={() => { void createAssessmentRecord() }}
+                  >
+                    {activeAssessmentId ? '✅ 本次紀錄已建立' : '➕ 新增紀錄'}
+                  </button>
+                )}
+              </div>
+              <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#6b7280' }}>
+                若表格較寬，請向右滑動；「編輯／刪除」按鈕固定顯示在右側。
+              </p>
               <div className="tablewrap">
-                <table className="table" style={{ fontSize: '16px' }}>
+                <table className="table table--sticky-actions" style={{ fontSize: '16px' }}>
                   <thead>
                     <tr>
                       <th style={{ width: 180 }}>評估時間</th>
@@ -455,7 +507,7 @@ export default function AssessmentsPage() {
                       <th style={{ width: 140 }}>認知功能評估</th>
                       <th style={{ width: 220 }}>Pataka 聲音評估</th>
                       <th style={{ minWidth: 100 }}>備註</th>
-                      <th style={{ width: 80 }}></th>
+                      <th style={{ width: 140, minWidth: 140 }}>操作</th>
                     </tr>
                   </thead>
                   <tbody>

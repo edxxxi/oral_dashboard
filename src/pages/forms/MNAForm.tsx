@@ -53,6 +53,7 @@ const questions = [
 ]
 
 export function MNAForm({
+  defaultScore,
   onSubmit,
   disabled,
   onSwitchResident
@@ -66,9 +67,17 @@ export function MNAForm({
   const [isDirty, setIsDirty] = useState(false)
 
   const totalScore = useMemo(() => answers.reduce((a, b) => a + b, 0), [answers])
+  const hasSavedScore = typeof defaultScore === 'number'
+  const displayScore = isDirty ? totalScore : hasSavedScore ? defaultScore : null
+  const displayIsRisk = typeof displayScore === 'number' && displayScore <= 11
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      {hasSavedScore && !isDirty && (
+        <div style={{ backgroundColor: '#f0fdf4', padding: '12px 16px', borderRadius: '8px', border: '1px solid #bbf7d0', color: '#166534', fontSize: '16px' }}>
+          本次評估已儲存 MNA-SF 總分：<strong>{defaultScore} 分</strong>（重新填寫後按「儲存評估」可更新）
+        </div>
+      )}
       <div style={{ backgroundColor: '#eff6ff', padding: '16px', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
         <p style={{ margin: 0, color: '#1e3a8a', fontSize: '18px', fontWeight: 500, lineHeight: 1.6 }}>
           💡 說明：簡易營養篩檢表 (MNA-SF)。滿分 14 分。
@@ -109,12 +118,12 @@ export function MNAForm({
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         marginTop: '16px', padding: '24px',
-        backgroundColor: !isDirty ? '#f3f4f6' : totalScore <= 11 ? '#fef2f2' : '#f0fdf4',
-        borderRadius: '8px', border: `2px solid ${!isDirty ? '#e5e7eb' : totalScore <= 11 ? '#fecaca' : '#bbf7d0'}`
+        backgroundColor: displayScore === null ? '#f3f4f6' : displayIsRisk ? '#fef2f2' : '#f0fdf4',
+        borderRadius: '8px', border: `2px solid ${displayScore === null ? '#e5e7eb' : displayIsRisk ? '#fecaca' : '#bbf7d0'}`
       }}>
-        <div style={{ fontSize: '24px', fontWeight: 600, color: !isDirty ? '#6b7280' : totalScore <= 11 ? '#991b1b' : '#166534', display: 'flex', alignItems: 'center' }}>
-          總分：{isDirty ? `${totalScore} 分` : '尚未填寫'}
-          {isDirty && totalScore <= 11 && <span style={{ marginLeft: '24px', fontSize: '16px', color: '#ef4444', backgroundColor: '#fee2e2', padding: '8px 16px', borderRadius: '20px' }}>⚠️ 具營養不良風險</span>}
+        <div style={{ fontSize: '24px', fontWeight: 600, color: displayScore === null ? '#6b7280' : displayIsRisk ? '#991b1b' : '#166534', display: 'flex', alignItems: 'center' }}>
+          總分：{displayScore === null ? '尚未填寫' : `${displayScore} 分`}
+          {displayScore !== null && displayIsRisk && <span style={{ marginLeft: '24px', fontSize: '16px', color: '#ef4444', backgroundColor: '#fee2e2', padding: '8px 16px', borderRadius: '20px' }}>⚠️ 具營養不良風險</span>}
         </div>
         <div style={{ display: 'flex', gap: '16px' }}>
           <button className="btn" disabled={disabled} style={{ padding: '16px 40px', fontSize: '18px' }} onClick={() => onSubmit({ mnaScore: totalScore })}>
