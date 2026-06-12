@@ -327,7 +327,7 @@ export default function ReportPage() {
                       <YAxis domain={[0.5, 3.5]} ticks={[1, 2, 3]} stroke="#ef4444" tick={{ fill: '#ef4444' }} tickFormatter={(val) => val === 1 ? '低' : val === 2 ? '中' : '高'} />
                       <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }} />
                       <Legend verticalAlign="top" height={36} />
-                      <Line type="linear" dataKey="risk" name="AI 風險 (低/中/高)" stroke="#ef4444" strokeWidth={3} dot={{ r: 6, fill: '#ffffff', strokeWidth: 2 }} activeDot={{ r: 8, fill: '#ef4444' }} />
+                      <Line type="linear" dataKey="risk" name="綜合風險 (低/中/高)" stroke="#ef4444" strokeWidth={3} dot={{ r: 6, fill: '#ffffff', strokeWidth: 2 }} activeDot={{ r: 8, fill: '#ef4444' }} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
