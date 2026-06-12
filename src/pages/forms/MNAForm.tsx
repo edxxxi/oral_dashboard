@@ -126,7 +126,7 @@ export function MNAForm({
           {displayScore !== null && displayIsRisk && <span style={{ marginLeft: '24px', fontSize: '16px', color: '#ef4444', backgroundColor: '#fee2e2', padding: '8px 16px', borderRadius: '20px' }}>⚠️ 具營養不良風險</span>}
         </div>
         <div style={{ display: 'flex', gap: '16px' }}>
-          <button className="btn" disabled={disabled} style={{ padding: '16px 40px', fontSize: '18px' }} onClick={() => onSubmit({ mnaScore: totalScore })}>
+          <button className="btn" disabled={disabled} style={{ padding: '16px 40px', fontSize: '18px' }} onClick={() => onSubmit({ mnaScore: isDirty ? totalScore : (defaultScore ?? totalScore) })}>
             儲存評估
           </button>
           {onSwitchResident && (

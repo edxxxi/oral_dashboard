@@ -23,9 +23,11 @@ const options = [
 
 export function EAT10Form({ defaultScore, onSubmit, onSwitchResident }: { defaultScore?: number; onSubmit: (patch: any) => void; onSwitchResident?: () => void }) {
   const [answers, setAnswers] = useState<number[]>(Array(10).fill(0))
+  const [isDirty, setIsDirty] = useState(false)
 
   const totalScore = useMemo(() => answers.reduce((a, b) => a + b, 0), [answers])
   const hasSavedScore = typeof defaultScore === 'number'
+  const displayScore = isDirty ? totalScore : hasSavedScore ? defaultScore : null
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -58,6 +60,7 @@ export function EAT10Form({ defaultScore, onSubmit, onSwitchResident }: { defaul
                       const newAnswers = [...answers]
                       newAnswers[i] = opt.value
                       setAnswers(newAnswers)
+                      setIsDirty(true)
                     }}
                     style={{ width: '40px', height: '40px', cursor: 'pointer' }}
                   />
@@ -69,18 +72,18 @@ export function EAT10Form({ defaultScore, onSubmit, onSwitchResident }: { defaul
         ))}
       </div>
 
-      <div style={{ 
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-        marginTop: '16px', padding: '24px', 
-        backgroundColor: totalScore >= 3 ? '#fef2f2' : '#f0fdf4', 
-        borderRadius: '8px', border: `2px solid ${totalScore >= 3 ? '#fecaca' : '#bbf7d0'}` 
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        marginTop: '16px', padding: '24px',
+        backgroundColor: displayScore === null ? '#f3f4f6' : displayScore >= 3 ? '#fef2f2' : '#f0fdf4',
+        borderRadius: '8px', border: `2px solid ${displayScore === null ? '#e5e7eb' : displayScore >= 3 ? '#fecaca' : '#bbf7d0'}`
       }}>
-        <div style={{ fontSize: '24px', fontWeight: 600, color: totalScore >= 3 ? '#991b1b' : '#166534', display: 'flex', alignItems: 'center' }}>
-          總分：{totalScore} 分
-          {totalScore >= 3 && <span style={{ marginLeft: '24px', fontSize: '16px', color: '#ef4444', backgroundColor: '#fee2e2', padding: '8px 16px', borderRadius: '20px' }}>⚠️ 具吞嚥障礙風險</span>}
+        <div style={{ fontSize: '24px', fontWeight: 600, color: displayScore === null ? '#6b7280' : displayScore >= 3 ? '#991b1b' : '#166534', display: 'flex', alignItems: 'center' }}>
+          總分：{displayScore === null ? '尚未填寫' : `${displayScore} 分`}
+          {displayScore !== null && displayScore >= 3 && <span style={{ marginLeft: '24px', fontSize: '16px', color: '#ef4444', backgroundColor: '#fee2e2', padding: '8px 16px', borderRadius: '20px' }}>⚠️ 具吞嚥障礙風險</span>}
         </div>
         <div style={{ display: 'flex', gap: '16px' }}>
-          <button className="btn" style={{ padding: '16px 40px', fontSize: '18px' }} onClick={() => onSubmit({ eat10Score: totalScore })}>
+          <button className="btn" style={{ padding: '16px 40px', fontSize: '18px' }} onClick={() => onSubmit({ eat10Score: isDirty ? totalScore : (defaultScore ?? totalScore) })}>
             儲存評估
           </button>
           {onSwitchResident && (

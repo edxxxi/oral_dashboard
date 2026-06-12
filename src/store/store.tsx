@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useCallback, useEffect, useMemo, useReducer, useState } from 'react'
+import React, { createContext, useContext, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { supabase } from '../utils/supabaseClient'
 import { makeId } from '../utils/ids'
 import { todayISO } from '../utils/date'
@@ -219,12 +219,41 @@ function normalizeAttachments(raw: unknown): Resident['attachments'] {
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState)
   const [loading, setLoading] = useState(true)
+  const hasLoaded = useRef(false)
 
-  // 登入後才載入資料，並在 SIGNED_IN 時重新載入（確保附件簽名 URL 有效）
+  // 初始化資料載入：直接呼叫 + 監聽後續 auth 事件
   useEffect(() => {
     let cancelled = false
+    let isLoadingData = false  // 防止並發重複呼叫
+
+    const mapResidentRow = (r: any): Resident => ({
+      ...r,
+      bedNo: r.bed_no,
+      photoUrl: r.photo_url,
+      medicalSummary: r.medical_summary,
+      oralCheckNotes: r.oral_check_notes,
+      dietStatus: r.diet_status,
+      attachments: normalizeAttachments((r as { attachments?: unknown }).attachments),
+    })
+    const mapAssessmentRow = (a: any): AssessmentRecord => ({
+      ...a,
+      residentId: a.resident_id,
+      createdAt: a.created_at,
+      monthKey: a.month_key,
+      weightKg: a.weight_kg,
+      spmsqErrors: a.spmsq_errors,
+      mnaScore: a.mna_score,
+      swallowScreen: a.swallow_screen,
+      swallow30s: a.swallow_30s,
+      eat10Score: a.eat10_score,
+      rsstScore: a.rsst_score ?? a.chewing_score,
+      chewingScore: a.chewing_score,
+      nursingData: a.nursing_data
+    } as any)
 
     async function loadData() {
+      if (isLoadingData) return  // 已在執行中，跳過
+      isLoadingData = true
       setLoading(true)
       try {
         const url = import.meta.env.VITE_SUPABASE_URL
@@ -234,55 +263,25 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           console.warn('⚠️  Supabase 環境變數未設置，使用模擬數據')
           if (!cancelled) {
             dispatch({ type: 'set_initial_data', state: makeMockState() })
+            hasLoaded.current = true
           }
           return
         }
 
         const { data: sessionData } = await supabase.auth.getSession()
-        if (!sessionData.session) return
-
-        const mapResidentRow = (r: any): Resident => ({
-          ...r,
-          bedNo: r.bed_no,
-          photoUrl: r.photo_url,
-          medicalSummary: r.medical_summary,
-          oralCheckNotes: r.oral_check_notes,
-          dietStatus: r.diet_status,
-          attachments: normalizeAttachments((r as { attachments?: unknown }).attachments),
-        })
-        const mapAssessmentRow = (a: any): AssessmentRecord => ({
-          ...a,
-          residentId: a.resident_id,
-          createdAt: a.created_at,
-          monthKey: a.month_key,
-          weightKg: a.weight_kg,
-          spmsqErrors: a.spmsq_errors,
-          mnaScore: a.mna_score,
-          swallowScreen: a.swallow_screen,
-          swallow30s: a.swallow_30s,
-          eat10Score: a.eat10_score,
-          rsstScore: a.rsst_score ?? a.chewing_score,
-          chewingScore: a.chewing_score,
-          nursingData: a.nursing_data
-        } as any)
+        if (!sessionData.session) return  // 未登入，finally 會釋放 loading
 
         const resResidents = await (supabase.from('residents') as any).select('*')
         if (resResidents.error) throw resResidents.error
 
         const residents = (resResidents.data || []).map(mapResidentRow)
-
         if (cancelled) return
 
         dispatch({
           type: 'set_initial_data',
-          state: {
-            ...initialState,
-            residents,
-            assessments: [],
-          }
+          state: { ...initialState, residents, assessments: [] }
         })
-
-        setLoading(false)
+        setLoading(false)  // 住民資料到位後先解除 loading，讓 UI 可互動
 
         const resAssessments = await (supabase.from('assessment_records') as any)
           .select('*')
@@ -296,27 +295,35 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           type: 'set_assessments_local',
           assessments: (resAssessments.data || []).map(mapAssessmentRow),
         })
+        if (!cancelled) hasLoaded.current = true
       } catch (error) {
         console.error('❌ 載入雲端資料失敗:', error)
         if (!cancelled) {
           console.warn('📦 改用模擬數據進行本地測試')
           dispatch({ type: 'set_initial_data', state: makeMockState() })
+          hasLoaded.current = true
         }
       } finally {
+        isLoadingData = false
         if (!cancelled) setLoading(false)
       }
     }
+
+    // 直接呼叫，不依賴 auth 事件時序——這是解決重新整理卡住的關鍵
+    void loadData()
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (cancelled) return
       console.log(`[Store] Auth event: ${event}`)
 
-      if (session?.user && (event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && state.residents.length === 0))) {
+      // 真正的新登入才重新載入（token refresh 觸發的 SIGNED_IN 不重載）
+      if (session?.user && event === 'SIGNED_IN' && !hasLoaded.current) {
         await loadData()
         return
       }
 
       if (event === 'SIGNED_OUT') {
+        hasLoaded.current = false
         const url = import.meta.env.VITE_SUPABASE_URL
         const key = import.meta.env.VITE_SUPABASE_ANON_KEY
         if (!url || !key) {
@@ -328,7 +335,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
-      // 對於其他事件，如果還在 loading，嘗試關閉它
+      // INITIAL_SESSION 無 session → 未登入，釋放 loading
       if (event === 'INITIAL_SESSION' && !session) {
         setLoading(false)
       }

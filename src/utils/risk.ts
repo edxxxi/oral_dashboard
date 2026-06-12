@@ -23,7 +23,7 @@ export function riskLevelText(level: RiskLevel) {
 }
 
 export function computeRiskLevel(a?: AssessmentRecord): RiskLevel {
-  if (!a) return 'medium'
+  if (!a) return 'low'
   let score = 0
 
   // 1) EAT-10：總分 >= 3 視為未達標
