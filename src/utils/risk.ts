@@ -45,8 +45,8 @@ export function computeRiskLevel(a?: AssessmentRecord): RiskLevel {
     if (!passed) score += 1
   }
 
-  // 根據使用者要求：滿 5 分為紅燈，3 分以上為黃燈
-  if (score >= 5) return 'high'
+  // 根據使用者要求：4分和5分就是紅燈，3分是黃燈
+  if (score >= 4) return 'high'
   if (score >= 3) return 'medium'
   return 'low'
 }
