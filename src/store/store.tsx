@@ -269,19 +269,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         const resResidents = await (supabase.from('residents') as any).select('*')
         if (resResidents.error) throw resResidents.error
 
-        const residentsRaw = (resResidents.data || []).map(mapResidentRow)
-        const residents = await Promise.all(
-          residentsRaw.map(async (r: Resident) => {
-            const attachments = await Promise.all(
-              r.attachments.map(async (a: ResidentAttachment) => {
-                if (!a.path || a.url) return a
-                const signedUrl = await tryCreateResidentAttachmentUrl(a.path)
-                return signedUrl ? { ...a, url: signedUrl } : a
-              }),
-            )
-            return { ...r, attachments }
-          }),
-        )
+        const residents = (resResidents.data || []).map(mapResidentRow)
 
         if (cancelled) return
 
@@ -321,13 +309,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (cancelled) return
+      console.log(`[Store] Auth event: ${event}`)
 
-      if (session?.user && (event === 'INITIAL_SESSION' || event === 'SIGNED_IN')) {
+      if (session?.user && (event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && state.residents.length === 0))) {
         await loadData()
         return
       }
 
-      if (event === 'INITIAL_SESSION' || event === 'SIGNED_OUT') {
+      if (event === 'SIGNED_OUT') {
         const url = import.meta.env.VITE_SUPABASE_URL
         const key = import.meta.env.VITE_SUPABASE_ANON_KEY
         if (!url || !key) {
@@ -335,6 +324,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         } else {
           dispatch({ type: 'set_initial_data', state: { ...initialState } })
         }
+        setLoading(false)
+        return
+      }
+
+      // 對於其他事件，如果還在 loading，嘗試關閉它
+      if (event === 'INITIAL_SESSION' && !session) {
         setLoading(false)
       }
     })
