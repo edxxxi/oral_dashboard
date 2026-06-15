@@ -95,7 +95,7 @@ export default function DashboardPage() {
     <div style={{
       position: 'fixed',
       top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: '#f0f4f8',
+      background: 'linear-gradient(160deg, #dbeafe 0%, #ffffff 60%)',
       zIndex: 9999,
       overflowY: 'auto',
       fontFamily: 'sans-serif'
