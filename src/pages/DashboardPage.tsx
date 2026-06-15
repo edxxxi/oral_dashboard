@@ -114,7 +114,7 @@ export default function DashboardPage() {
           {navItems.map(sc => {
             const isActive = location.pathname === sc.path && (sc.path !== '/' || location.pathname === '/')
             return (
-              <Link key={sc.path} to={sc.path} end={sc.path === '/' ? true : undefined} style={{
+              <Link key={sc.path} to={sc.path} style={{
                 textDecoration: 'none', padding: '6px 12px', borderRadius: '6px',
                 color: isActive ? '#111827' : '#4b5563',
                 fontWeight: isActive ? 600 : 500, fontSize: '15px',
