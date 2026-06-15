@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth'
 import { useStore } from '../store/store'
 import { computeRiskLevel } from '../utils/risk'
@@ -9,6 +9,7 @@ export default function DashboardPage() {
   const { state, dispatch } = useStore()
   const { residents, assessments } = state
   const navigate = useNavigate()
+  const location = useLocation()
   const [q, setQ] = useState('')
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [hoveredRisk, setHoveredRisk] = useState<'high' | 'medium' | 'low' | null>(null)
@@ -18,7 +19,14 @@ export default function DashboardPage() {
     navigate('/login', { replace: true })
   }
 
-  // 原有的 5 個分頁功能
+  const navItems = [
+    { name: '首頁', path: '/' },
+    { name: '系統管理', path: '/system' },
+    { name: '住民資料', path: '/residents' },
+    { name: '評估量表', path: '/assessments' },
+    { name: '分析報告', path: '/reports' },
+  ]
+
   const shortcuts = [
     { name: '系統管理', path: '/system', icon: '⚙️' },
     { name: '住民資料', path: '/residents', icon: '📁' },
@@ -89,125 +97,125 @@ export default function DashboardPage() {
       top: 0, left: 0, right: 0, bottom: 0,
       backgroundColor: '#ffffff',
       zIndex: 9999,
-      display: 'flex',
-      flexDirection: 'column',
+      overflowY: 'auto',
       fontFamily: 'sans-serif'
     }}>
-      {/* 右上角：使用者資訊與登出選單 */}
-      <div style={{ position: 'absolute', top: 16, right: 24 }}>
-        <button
-          onClick={() => setShowUserMenu(!showUserMenu)}
-          style={{
-            width: 40, height: 40, borderRadius: '50%',
-            backgroundColor: '#2563eb', color: '#fff',
-            border: 'none', cursor: 'pointer', fontSize: 18, fontWeight: 'bold',
-            display: 'flex', alignItems: 'center', justifyContent: 'center'
-          }}
-          title="使用者選單"
-        >
-          {user?.name?.[0] || 'U'}
-        </button>
-
-        {showUserMenu && (
-          <div style={{
-            position: 'absolute', top: 50, right: 0,
-            backgroundColor: '#fff',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            borderRadius: 8, padding: '8px 0',
-            width: 160, textAlign: 'center'
-          }}>
-            <div style={{ padding: '8px 16px', borderBottom: '1px solid #eee', color: '#666', fontSize: 14 }}>
-              {user?.name || '使用者'}
-            </div>
-            <button
-              onClick={handleLogout}
-              style={{
-                display: 'block', width: '100%', padding: '12px 16px',
-                border: 'none', background: 'transparent', cursor: 'pointer',
-                textAlign: 'center', fontSize: 14, color: '#333'
-              }}
-              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-            >
-              切換使用者
-            </button>
-            <button
-              onClick={handleLogout}
-              style={{
-                display: 'block', width: '100%', padding: '12px 16px',
-                border: 'none', background: 'transparent', cursor: 'pointer',
-                textAlign: 'center', fontSize: 14, color: '#333'
-              }}
-              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-            >
-              登出
-            </button>
+      {/* 頂部導航欄 */}
+      <header style={{
+        position: 'sticky', top: 0, zIndex: 100,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 24px', height: '64px', backgroundColor: '#ffffff',
+        borderBottom: '1px solid #e5e7eb', boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ fontWeight: 800, fontSize: '20px', marginRight: '16px', color: '#111827' }}>
+            🦷 OralCare
           </div>
-        )}
-      </div>
+          {navItems.map(sc => {
+            const isActive = location.pathname === sc.path && (sc.path !== '/' || location.pathname === '/')
+            return (
+              <Link key={sc.path} to={sc.path} end={sc.path === '/' ? true : undefined} style={{
+                textDecoration: 'none', padding: '6px 12px', borderRadius: '6px',
+                color: isActive ? '#111827' : '#4b5563',
+                fontWeight: isActive ? 600 : 500, fontSize: '15px',
+                backgroundColor: isActive ? '#f3f4f6' : 'transparent',
+                transition: 'all 0.2s'
+              }}
+                onMouseOver={(e) => !isActive && (e.currentTarget.style.color = '#111827')}
+                onMouseOut={(e) => !isActive && (e.currentTarget.style.color = '#4b5563')}>
+                {sc.name}
+              </Link>
+            )
+          })}
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          <div style={{ position: 'relative', width: '260px' }}>
+            <input
+              type="text"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              onKeyDown={handleSearchEnter}
+              placeholder="🔍 搜尋床號或姓名..."
+              style={{
+                width: '100%', padding: '8px 16px', fontSize: '14px',
+                borderRadius: '20px', border: '1px solid #d1d5db',
+                outline: 'none', backgroundColor: '#f9fafb', boxSizing: 'border-box'
+              }}
+              onFocus={(e) => { e.target.style.borderColor = '#3b82f6'; e.target.style.backgroundColor = '#fff' }}
+              onBlur={(e) => { e.target.style.borderColor = '#d1d5db'; e.target.style.backgroundColor = '#f9fafb' }}
+            />
+            {q.trim() !== '' && (
+              <div style={{
+                position: 'absolute', top: '100%', right: 0, width: '320px',
+                backgroundColor: '#fff', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
+                border: '1px solid #e5e7eb', borderRadius: '8px', marginTop: '8px',
+                maxHeight: '400px', overflowY: 'auto', zIndex: 10
+              }}>
+                {searchResults.length > 0 ? searchResults.map(r => (
+                  <div key={r.id} onClick={() => {
+                    dispatch({ type: 'select_resident', id: r.id })
+                    navigate('/residents')
+                  }} style={{
+                    padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid #f3f4f6',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                  }}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                    <span style={{ fontSize: '15px', color: '#111827', fontWeight: 500 }}>{r.bedNo} - {r.name}</span>
+                    <span style={{ color: '#3b82f6', fontSize: '13px' }}>前往 &rarr;</span>
+                  </div>
+                )) : (
+                  <div style={{ padding: '16px', color: '#6b7280', textAlign: 'center', fontSize: '14px' }}>查無符合的住民</div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div style={{ position: 'relative' }}>
+            <button onClick={() => setShowUserMenu(!showUserMenu)} style={{
+              width: 36, height: 36, borderRadius: '50%', backgroundColor: '#2563eb',
+              color: '#fff', border: 'none', cursor: 'pointer', fontSize: 16, fontWeight: 'bold',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }} title="使用者選單">
+              {user?.name?.[0] || 'U'}
+            </button>
+            {showUserMenu && (
+              <div style={{
+                position: 'absolute', top: 48, right: 0, backgroundColor: '#fff',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)', borderRadius: 8, padding: '8px 0',
+                width: 160, textAlign: 'center', border: '1px solid #e5e7eb'
+              }}>
+                <div style={{ padding: '8px 16px', borderBottom: '1px solid #f3f4f6', color: '#4b5563', fontSize: 13, fontWeight: 500 }}>
+                  {user?.name || '使用者'}
+                </div>
+                <button onClick={handleLogout} style={{
+                  display: 'block', width: '100%', padding: '12px 16px', border: 'none',
+                  background: 'transparent', cursor: 'pointer', textAlign: 'center', fontSize: 14, color: '#ef4444'
+                }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                  登出
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
 
       {/* 中間主要區塊 */}
       <div style={{
-        flex: 1, display: 'flex', flexDirection: 'column',
+        display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'flex-start',
         paddingTop: '8vh', paddingBottom: '64px'
-        }}>
+      }}>
         
         {/* 標題 */}
         <h1 style={{ fontSize: '4.5rem', color: '#202124', marginBottom: '2.5rem', fontWeight: 500 }}>
           口腔功能統合儀表板
         </h1>
 
-        {/* 搜尋列 */}
-        <div style={{ width: '100%', maxWidth: '584px', position: 'relative' }}>
-          <label className="field">
-            <span className="label" style={{ fontSize: '16px' }}>搜尋床號 / 姓名</span>
-            <input
-              type="text"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              onKeyDown={handleSearchEnter}
-              placeholder="例如：A-02 / 林"
-              style={{ width: '100%' }}
-            />
-          </label>
-
-          {/* 搜尋結果下拉選單 */}
-          {q.trim() !== '' && (
-            <div style={{
-              position: 'absolute', top: '100%', left: 0, right: 0,
-              backgroundColor: '#fff',
-              boxShadow: '0 4px 12px rgba(32,33,36,.15)',
-              border: '1px solid #dfe1e5',
-              borderRadius: '8px',
-              marginTop: '4px',
-              zIndex: 10,
-              maxHeight: '300px',
-              overflowY: 'auto'
-            }}>
-              {searchResults.length > 0 ? searchResults.map(r => (
-                <div
-                  key={r.id}
-                  onClick={() => {
-                    dispatch({ type: 'select_resident', id: r.id })
-                    navigate('/residents') // 跳轉到住民基本資料
-                  }}
-                  style={{ padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid #f1f3f4', display: 'flex', justifyContent: 'space-between' }}
-                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
-                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                >
-                  <span style={{ fontSize: '16px', color: '#202124' }}>{r.bedNo} - {r.name}</span>
-                  <span style={{ color: '#1a73e8', fontSize: '14px' }}>前往資料 &rarr;</span>
-                </div>
-              )) : (
-                <div style={{ padding: '16px', color: '#5f6368', textAlign: 'center' }}>查無符合的住民</div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* 5個選項（原先側邊欄功能） */}
+        {/* 快速入口 */}
         <div style={{ display: 'flex', gap: '24px', marginTop: '4rem', flexWrap: 'wrap', justifyContent: 'center' }}>
           {shortcuts.map((sc) => (
             <Link
