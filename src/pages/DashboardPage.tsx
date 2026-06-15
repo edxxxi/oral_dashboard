@@ -95,7 +95,7 @@ export default function DashboardPage() {
     <div style={{
       position: 'fixed',
       top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: '#ffffff',
+      backgroundColor: '#f0f4f8',
       zIndex: 9999,
       overflowY: 'auto',
       fontFamily: 'sans-serif'
@@ -211,7 +211,7 @@ export default function DashboardPage() {
       }}>
         
         {/* 標題 */}
-        <h1 style={{ fontSize: '4.5rem', color: '#202124', marginBottom: '2.5rem', fontWeight: 500 }}>
+        <h1 style={{ fontSize: '4.5rem', color: '#1e3a5f', marginBottom: '2.5rem', fontWeight: 500 }}>
           口腔功能統合儀表板
         </h1>
 
