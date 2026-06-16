@@ -283,7 +283,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         const feedbacks: Feedback[] = (resFeedbacks.data || []).map((f: any) => ({
           id: f.id,
           createdAt: f.created_at,
-          from: f.sender,
+          from: f.from_user,
           message: f.message,
           status: f.status,
         }))
@@ -598,7 +598,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const addFeedback = useCallback(async (feedback: Pick<Feedback, 'from' | 'message'>) => {
     const { data, error } = await (supabase.from('feedbacks') as any).insert([{
-      sender: feedback.from,
+      from_user: feedback.from,
       message: feedback.message,
       status: 'new',
     }]).select().single()
