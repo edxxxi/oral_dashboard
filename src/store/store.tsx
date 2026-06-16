@@ -285,7 +285,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         const feedbacks: Feedback[] = (resFeedbacks.data || []).map((f: any) => ({
           id: f.id,
           createdAt: f.created_at,
-          from: f.from,
+          from: f.sender,
           message: f.message,
           status: f.status,
         }))
@@ -604,7 +604,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const { error } = await (supabase.from('feedbacks') as any).insert([{
       id,
       created_at: createdAt,
-      from: feedback.from,
+      sender: feedback.from,
       message: feedback.message,
       status: 'new',
     }])
