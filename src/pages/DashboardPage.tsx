@@ -212,7 +212,7 @@ export default function DashboardPage() {
         
         {/* 標題 */}
         <h1 style={{ fontSize: '4.5rem', color: '#1e3a5f', marginBottom: '2.5rem', fontWeight: 500 }}>
-          口腔功能統合儀表板
+          吞嚥功能統合儀表板
         </h1>
 
         {/* 快速入口 */}

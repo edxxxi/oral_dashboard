@@ -54,7 +54,7 @@ const roleToPermissions: Record<Role, Permission[]> = {
     'submit:pataka',
     'edit:doctor_note',
   ),
-  caregiver: perms('view:all', 'edit:oral_check_notes', 'attach:upload', 'submit:swallow_screen'),
+  caregiver: perms('view:all', 'edit:oral_check_notes', 'attach:upload', 'submit:swallow_screen', 'submit:pataka'),
   slp: perms('view:all', 'edit:slp_notes', 'submit:swallow_30s'),
   dietitian: perms('view:all', 'edit:dietitian_notes', 'submit:mna'),
 }

@@ -45,7 +45,7 @@ export default function LoginPage() {
         }}
       >
         <div style={{ textAlign: 'center', marginBottom: 16 }}>
-          <div style={{ fontSize: 36, fontWeight: 900, color: '#0b4a8b', lineHeight: 1.2 }}>口腔評估管理系統</div>
+          <div style={{ fontSize: 36, fontWeight: 900, color: '#0b4a8b', lineHeight: 1.2 }}>吞嚥評估管理系統</div>
           <div className="muted" style={{ fontSize: 15, marginTop: 6 }}>
             請使用帳號與密碼登入
           </div>
