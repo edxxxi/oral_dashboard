@@ -90,18 +90,9 @@ export type Feedback = {
   status: 'new' | 'triaged' | 'done'
 }
 
-export type DoctorRecommendation = {
-  id: string
-  residentId: string
-  createdAt: string
-  content: string
-}
-
 export type AppState = {
   selectedResidentId: string | null
   residents: Resident[]
   assessments: AssessmentRecord[]
-  staff: StaffAccount[]
   feedbacks: Feedback[]
-  doctorRecs: DoctorRecommendation[]
 }

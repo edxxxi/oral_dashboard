@@ -4,7 +4,7 @@ import { supabase } from '../utils/supabaseClient'
 import { makeId } from '../utils/ids'
 import { todayISO } from '../utils/date'
 import { makeMockState } from '../data/mock'
-import type { AppState, AssessmentRecord, Feedback, Resident, StaffAccount } from './types'
+import type { AppState, AssessmentRecord, Feedback, Resident } from './types'
 
 const PATAKA_BUCKET = 'pataka-audio'
 const RESIDENT_ATTACHMENTS_BUCKET = 'resident-attachments'
@@ -34,9 +34,7 @@ const initialState: AppState = {
   selectedResidentId: null,
   residents: [],
   assessments: [],
-  staff: [],
   feedbacks: [],
-  doctorRecs: []
 }
 
 // 定義動作類型
@@ -50,9 +48,6 @@ type Action =
   | { type: 'add_assessment_local'; record: AssessmentRecord }
   | { type: 'update_assessment_local'; id: string; patch: Partial<AssessmentRecord> }
   | { type: 'delete_assessment_local'; id: string }
-  | { type: 'add_attachment'; residentId: string; name: string }
-  | { type: 'add_staff'; staff: StaffAccount }
-  | { type: 'toggle_staff'; id: string }
   | { type: 'add_feedback'; feedback: Omit<Feedback, 'status'> }
   | { type: 'update_feedback_status'; id: string; status: Feedback['status'] }
 
@@ -99,33 +94,6 @@ function reducer(state: AppState, action: Action): AppState {
         ...state,
         assessments: state.assessments.filter((a) => a.id !== action.id),
       }
-    case 'add_attachment':
-      return {
-        ...state,
-        residents: state.residents.map((r) =>
-          r.id === action.residentId
-            ? {
-                ...r,
-                attachments: [
-                  ...r.attachments,
-                  { id: makeId('att'), name: action.name, addedAt: todayISO() },
-                ],
-              }
-            : r
-        ),
-      }
-    case 'add_staff':
-      return {
-        ...state,
-        staff: [...state.staff, action.staff],
-      }
-    case 'toggle_staff':
-      return {
-        ...state,
-        staff: state.staff.map((s) =>
-          s.id === action.id ? { ...s, active: !s.active } : s
-        ),
-      }
     case 'add_feedback':
       return {
         ...state,
@@ -154,12 +122,9 @@ type Store = {
   state: AppState
   dispatch: React.Dispatch<Action>
   loading: boolean
-  // 新增：直接操作資料庫的異步方法
-  updateResident: (id: string, patch: Partial<Resident>) => Promise<void>
   addAssessment: (residentId: string, patch: Partial<AssessmentRecord>) => Promise<AssessmentRecord | null>
   updateAssessment: (assessmentId: string, patch: Partial<AssessmentRecord>) => Promise<boolean>
   deleteAssessment: (assessmentId: string) => Promise<boolean>
-  // 新增：將住民寫入雲端資料庫
   addResident: (resident: Partial<Resident>, attachmentFiles?: File[]) => Promise<void>
   deleteResident: (residentId: string) => Promise<void>
   uploadPatakaAudio: (residentId: string, file: File, uploadedBy: string) => Promise<PatakaAudioUploadResult>
@@ -358,30 +323,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  // 2. 異步更新住民資料並同步到雲端
-  const updateResident = useCallback(async (id: string, patch: Partial<Resident>) => {
-    const dbPatch: Record<string, unknown> = {}
-    if (patch.name !== undefined) dbPatch.name = patch.name
-    if (patch.age !== undefined) dbPatch.age = patch.age
-    if (patch.dob !== undefined) dbPatch.dob = patch.dob
-    if (patch.gender !== undefined) dbPatch.gender = patch.gender
-    if (patch.photoUrl !== undefined) dbPatch.photo_url = patch.photoUrl
-    if (patch.bedNo !== undefined) dbPatch.bed_no = patch.bedNo
-    if (patch.medicalSummary !== undefined) dbPatch.medical_summary = patch.medicalSummary
-    if (patch.oralCheckNotes !== undefined) dbPatch.oral_check_notes = patch.oralCheckNotes
-    if (patch.dietStatus !== undefined) dbPatch.diet_status = patch.dietStatus
-    if (patch.attachments !== undefined) dbPatch.attachments = patch.attachments
-
-    const { error } = await (supabase.from('residents') as any).update(dbPatch).eq('id', id)
-
-    if (error) {
-      alert('雲端更新失敗: ' + error.message)
-    } else {
-      dispatch({ type: 'update_resident_local', id, patch })
-    }
-  }, [dispatch])
-
-  // 3. 新增評估紀錄並同步到雲端
+  // 新增評估紀錄並同步到雲端
   const addAssessment = useCallback(async (residentId: string, patch: Partial<AssessmentRecord>) => {
     const createdAt = todayISO()
     const d = new Date(createdAt)
@@ -667,7 +609,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     state,
     dispatch,
     loading,
-    updateResident,
     addAssessment,
     updateAssessment,
     deleteAssessment,
@@ -678,7 +619,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     uploadPatakaAudio,
     getPatakaAudioDownloadUrl,
     getResidentAttachmentUrl
-  }), [state, loading, updateResident, addAssessment, updateAssessment, deleteAssessment, addResident, deleteResident, addFeedback, updateFeedbackStatus, uploadPatakaAudio, getPatakaAudioDownloadUrl, getResidentAttachmentUrl])
+  }), [state, loading, addAssessment, updateAssessment, deleteAssessment, addResident, deleteResident, addFeedback, updateFeedbackStatus, uploadPatakaAudio, getPatakaAudioDownloadUrl, getResidentAttachmentUrl])
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
 }

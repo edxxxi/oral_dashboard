@@ -1,6 +1,6 @@
 import { makeId } from '../utils/ids'
 import { todayISO } from '../utils/date'
-import type { AppState, AssessmentRecord, Resident, StaffAccount } from '../store/types'
+import type { AppState, AssessmentRecord, Resident } from '../store/types'
 
 function monthKey(iso: string) {
   const d = new Date(iso)
@@ -131,28 +131,18 @@ export function makeMockState(): AppState {
     )
   }
 
-  const staff: StaffAccount[] = [
-    { id: makeId('staff'), name: '管理者', role: 'admin', email: 'admin@example.com', active: true },
-    { id: makeId('staff'), name: '護理師 A', role: 'nurse', email: 'nurse.a@example.com', active: true },
-    { id: makeId('staff'), name: '營養師 B', role: 'dietitian', email: 'dietitian.b@example.com', active: true },
-    { id: makeId('staff'), name: '照服員 C', role: 'caregiver', email: 'care.c@example.com', active: true },
-    { id: makeId('staff'), name: '語言治療師 D', role: 'slp', email: 'slp.d@example.com', active: true },
-  ]
-
   return {
     selectedResidentId: residents[0]?.id ?? null,
     residents,
     assessments,
-    staff,
     feedbacks: [
       {
         id: makeId('fb'),
         createdAt: todayISO(),
         from: '護理師 A',
         message: '希望 Dashboard 的篩選可以加上「餐食類型」。',
-        status: 'new',
+        status: 'new' as const,
       },
     ],
-    doctorRecs: [],
   }
 }
