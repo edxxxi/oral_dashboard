@@ -53,7 +53,7 @@ type Action =
   | { type: 'add_attachment'; residentId: string; name: string }
   | { type: 'add_staff'; staff: StaffAccount }
   | { type: 'toggle_staff'; id: string }
-  | { type: 'add_feedback'; feedback: Omit<Feedback, 'id' | 'createdAt' | 'status'> }
+  | { type: 'add_feedback'; feedback: Omit<Feedback, 'status'> }
   | { type: 'update_feedback_status'; id: string; status: Feedback['status'] }
 
 // Reducer 處理本地狀態更新
@@ -131,10 +131,8 @@ function reducer(state: AppState, action: Action): AppState {
         ...state,
         feedbacks: [
           {
-            id: makeId('fb'),
-            createdAt: todayISO(),
-            ...action.feedback,
             status: 'new' as const,
+            ...action.feedback,
           },
           ...state.feedbacks,
         ],
@@ -167,7 +165,7 @@ type Store = {
   uploadPatakaAudio: (residentId: string, file: File, uploadedBy: string) => Promise<PatakaAudioUploadResult>
   getPatakaAudioDownloadUrl: (audioPath: string) => Promise<string>
   getResidentAttachmentUrl: (path: string) => Promise<string>
-  addFeedback: (feedback: Omit<Feedback, 'id' | 'createdAt' | 'status'>) => Promise<void>
+  addFeedback: (feedback: Pick<Feedback, 'from' | 'message'>) => Promise<void>
   updateFeedbackStatus: (id: string, status: Feedback['status']) => Promise<void>
 }
 
@@ -598,21 +596,20 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'delete_resident_local', id: residentId })
   }, [dispatch])
 
-  const addFeedback = useCallback(async (feedback: Omit<Feedback, 'id' | 'createdAt' | 'status'>) => {
-    const id = makeId('fb')
-    const createdAt = todayISO()
-    const { error } = await (supabase.from('feedbacks') as any).insert([{
-      id,
-      created_at: createdAt,
+  const addFeedback = useCallback(async (feedback: Pick<Feedback, 'from' | 'message'>) => {
+    const { data, error } = await (supabase.from('feedbacks') as any).insert([{
       sender: feedback.from,
       message: feedback.message,
       status: 'new',
-    }])
+    }]).select().single()
     if (error) {
       alert('送出回饋失敗: ' + error.message)
       return
     }
-    dispatch({ type: 'add_feedback', feedback })
+    dispatch({
+      type: 'add_feedback',
+      feedback: { ...feedback, id: data.id, createdAt: data.created_at } as any,
+    })
   }, [dispatch])
 
   const updateFeedbackStatus = useCallback(async (id: string, status: Feedback['status']) => {
