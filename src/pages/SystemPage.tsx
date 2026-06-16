@@ -24,7 +24,7 @@ function roleLabel(role: string) {
 }
 
 export default function SystemPage() {
-  const { state, dispatch } = useStore()
+  const { state, dispatch, addFeedback, updateFeedbackStatus } = useStore()
   const {
     user,
     can: canPermission,
@@ -215,7 +215,7 @@ export default function SystemPage() {
               </button>
             ) : null}
             <button className={tab === 'feedback' ? 'btn' : 'btn btn--sub'} onClick={() => setTab('feedback')} style={{ padding: '8px 16px', fontSize: '15px' }}>
-              {canManageStaff ? '2. 系統使用回饋（工程師）' : '系統使用回饋（工程師）'}
+              {canManageStaff ? '2. 系統使用回饋' : '系統使用回饋'}
             </button>
           </div>
         </div>
@@ -244,7 +244,7 @@ export default function SystemPage() {
                   </select>
                 </label>
                 <label className="field" style={{ minWidth: 220 }}>
-                  <span className="label">密碼（主管手動設定）</span>
+                  <span className="label">密碼（主管設定）</span>
                   <input
                     type="password"
                     value={newStaffPassword}
@@ -405,7 +405,7 @@ export default function SystemPage() {
                     const from = fbFrom.trim()
                     const message = fbMessage.trim()
                     if (!from || !message) return
-                    dispatch({ type: 'add_feedback', feedback: { from, message } })
+                    void addFeedback({ from, message })
                     setFbFrom('')
                     setFbMessage('')
                   }}
@@ -437,11 +437,7 @@ export default function SystemPage() {
                           <select
                             value={f.status}
                             onChange={(e) =>
-                              dispatch({
-                                type: 'update_feedback_status',
-                                id: f.id,
-                                status: e.target.value as Feedback['status'],
-                              })
+                              void updateFeedbackStatus(f.id, e.target.value as Feedback['status'])
                             }
                           >
                             <option value="new">新</option>

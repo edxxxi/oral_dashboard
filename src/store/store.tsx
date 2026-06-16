@@ -167,6 +167,8 @@ type Store = {
   uploadPatakaAudio: (residentId: string, file: File, uploadedBy: string) => Promise<PatakaAudioUploadResult>
   getPatakaAudioDownloadUrl: (audioPath: string) => Promise<string>
   getResidentAttachmentUrl: (path: string) => Promise<string>
+  addFeedback: (feedback: Omit<Feedback, 'id' | 'createdAt' | 'status'>) => Promise<void>
+  updateFeedbackStatus: (id: string, status: Feedback['status']) => Promise<void>
 }
 
 const StoreContext = createContext<Store | null>(null)
@@ -277,9 +279,20 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         const residents = (resResidents.data || []).map(mapResidentRow)
         if (cancelled) return
 
+        const resFeedbacks = await (supabase.from('feedbacks') as any)
+          .select('*')
+          .order('created_at', { ascending: false })
+        const feedbacks: Feedback[] = (resFeedbacks.data || []).map((f: any) => ({
+          id: f.id,
+          createdAt: f.created_at,
+          from: f.from,
+          message: f.message,
+          status: f.status,
+        }))
+
         dispatch({
           type: 'set_initial_data',
-          state: { ...initialState, residents, assessments: [] }
+          state: { ...initialState, residents, assessments: [], feedbacks }
         })
         setLoading(false)  // 住民資料到位後先解除 loading，讓 UI 可互動
 
@@ -585,6 +598,34 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'delete_resident_local', id: residentId })
   }, [dispatch])
 
+  const addFeedback = useCallback(async (feedback: Omit<Feedback, 'id' | 'createdAt' | 'status'>) => {
+    const id = makeId('fb')
+    const createdAt = todayISO()
+    const { error } = await (supabase.from('feedbacks') as any).insert([{
+      id,
+      created_at: createdAt,
+      from: feedback.from,
+      message: feedback.message,
+      status: 'new',
+    }])
+    if (error) {
+      alert('送出回饋失敗: ' + error.message)
+      return
+    }
+    dispatch({ type: 'add_feedback', feedback })
+  }, [dispatch])
+
+  const updateFeedbackStatus = useCallback(async (id: string, status: Feedback['status']) => {
+    const { error } = await (supabase.from('feedbacks') as any)
+      .update({ status })
+      .eq('id', id)
+    if (error) {
+      alert('更新狀態失敗: ' + error.message)
+      return
+    }
+    dispatch({ type: 'update_feedback_status', id, status })
+  }, [dispatch])
+
   const uploadPatakaAudio = useCallback(async (residentId: string, file: File, uploadedBy: string) => {
     const fileName = file.name.trim() || 'pataka-audio'
     const safeFileName = fileName.replace(/[^\w.-]+/g, '_')
@@ -625,20 +666,22 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     return data.signedUrl
   }, [])
 
-  const value = useMemo(() => ({ 
-    state, 
-    dispatch, 
-    loading, 
-    updateResident, 
+  const value = useMemo(() => ({
+    state,
+    dispatch,
+    loading,
+    updateResident,
     addAssessment,
     updateAssessment,
     deleteAssessment,
     addResident,
     deleteResident,
+    addFeedback,
+    updateFeedbackStatus,
     uploadPatakaAudio,
     getPatakaAudioDownloadUrl,
     getResidentAttachmentUrl
-  }), [state, loading, updateResident, addAssessment, updateAssessment, deleteAssessment, addResident, deleteResident, uploadPatakaAudio, getPatakaAudioDownloadUrl, getResidentAttachmentUrl])
+  }), [state, loading, updateResident, addAssessment, updateAssessment, deleteAssessment, addResident, deleteResident, addFeedback, updateFeedbackStatus, uploadPatakaAudio, getPatakaAudioDownloadUrl, getResidentAttachmentUrl])
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
 }
